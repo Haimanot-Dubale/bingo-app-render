@@ -1,0 +1,52 @@
+# Render Blueprint - creates the Bingo web service (free plan).
+# The database lives on TiDB Cloud; fill the "sync: false" values in the Render dashboard.
+services:
+  - type: web
+    name: bingo-app
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm run start:render      # creates missing tables, then starts the server
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      - key: BEHIND_CLOUDFLARE            # Render sits behind Cloudflare: use the visitor's real IP
+        value: "true"
+      # ---- TiDB Cloud connection (from the TiDB "Connect" dialog) ----
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        value: "4000"
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_NAME
+        sync: false
+      - key: DB_SSL
+        value: "true"
+      - key: DB_CONNECTION_LIMIT
+        value: "20"
+      # ---- App ----
+      - key: SESSION_SECRET               # generated once and kept, so logins survive restarts
+        generateValue: true
+      - key: ADMIN_API_KEY
+        generateValue: true
+      - key: ALLOW_AGENT_SIGNUP
+        value: "false"
+      - key: TZ_OFFSET_MINUTES
+        value: "180"
+      - key: ENABLE_SOUND
+        value: "true"
+      - key: PUBLIC_URL                   # e.g. https://bingo-app.onrender.com
+        sync: false
+      # First administrator (created on first start). Delete ADMIN_PASSWORD afterwards.
+      - key: ADMIN_USERNAME
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false

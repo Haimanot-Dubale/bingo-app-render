@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Bingo Player - Join & Play</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        /* Login Screen */
+        .login-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .login-card {
+            background: rgba(255,255,255,0.98);
+            border-radius: 30px;
+            padding: 40px;
+            width: 450px;
+            max-width: 90%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: fadeInUp 0.6s ease;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Game Interface */
+        .game-interface {
+            display: none;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header */
+        .game-header {
+            background: rgba(255,255,255,0.95);
+            border-radius: 20px;
+            padding: 15px 25px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+
+        .player-info {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .player-badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 50px;
+            font-weight: bold;
+        }
+
+        /* Draw Area */
+        .draw-area {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+
+        .current-call {
+            text-align: center;
+            padding: 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 20px;
+            margin-bottom: 20px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+
+        .call-letter {
+            font-size: 56px;
+            font-weight: bold;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .call-number {
+            font-size: 80px;
+            font-weight: bold;
+            color: #ffd700;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .draw-history {
+            display: flex;
+            overflow-x: auto;
+            gap: 10px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            white-space: nowrap;
+        }
+
+        .history-item {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 25px;
+            font-weight: bold;
+            font-size: 14px;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        /* Cards Selection */
+        .cards-selection {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+
+        .selection-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .card-item {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-align: center;
+            padding: 15px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+            font-size: 18px;
+            border: 2px solid transparent;
+        }
+
+        .card-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .card-item.selected {
+            background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+            color: #333;
+            border-color: #28a745;
+            transform: scale(1.05);
+        }
+
+        .card-item.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* My Cards */
+        .my-cards {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+
+        .cards-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+            max-height: 500px;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .card-view {
+            background: white;
+            border: 2px solid #667eea;
+            border-radius: 15px;
+            padding: 15px;
+            width: 320px;
+            transition: all 0.3s ease;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            position: relative;
+        }
+
+        .card-view:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+        .card-view.winner {
+            border: 3px solid #ffc107;
+            background: linear-gradient(135deg, #fff9e6 0%, #fff 100%);
+            animation: winnerGlow 1s infinite;
+        }
+
+        @keyframes winnerGlow {
+            0%, 100% { box-shadow: 0 0 5px #ffc107; }
+            50% { box-shadow: 0 0 20px #ffc107; }
+        }
+
+        .card-title {
+            text-align: center;
+            color: #667eea;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .card-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .card-table td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: center;
+            font-size: 12px;
+            font-weight: bold;
+            transition: all 0.2s ease;
+        }
+
+        .card-table td.marked {
+            background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+            transform: scale(1.02);
+            font-weight: bold;
+        }
+
+        /* Bingo Button */
+        .bingo-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
+            border: none;
+            color: #333;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+            animation: bounce 2s infinite;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .bingo-btn i {
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .bingo-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+        }
+
+        /* Stats Bar */
+        .stats-bar {
+            background: white;
+            border-radius: 15px;
+            padding: 10px 20px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .stat {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .stat-value {
+            font-weight: bold;
+            color: #667eea;
+            font-size: 18px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .game-interface {
+                padding: 10px;
+            }
+
+            .card-view {
+                width: 100%;
+            }
+
+            .call-letter {
+                font-size: 36px;
+            }
+
+            .call-number {
+                font-size: 52px;
+            }
+
+            .bingo-btn {
+                width: 60px;
+                height: 60px;
+                font-size: 10px;
+                bottom: 20px;
+                right: 20px;
+            }
+
+            .bingo-btn i {
+                font-size: 20px;
+            }
+
+            .card-grid {
+                grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+            }
+
+            .card-item {
+                padding: 10px;
+                font-size: 14px;
+            }
+        }
+
+        /* Loading Animation */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(0,0,0,.3);
+            border-radius: 50%;
+            border-top-color: #667eea;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Toast Notifications */
+        .toast-notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 2000;
+            animation: slideInRight 0.3s ease;
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(100%);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Screen -->
+    <div class="login-screen" id="loginScreen">
+        <div class="login-card">
+            <div class="text-center mb-4">
+                <i class="fas fa-dice-d6 fa-4x" style="color: #667eea;"></i>
+                <h2 class="mt-3">Join Bingo Game</h2>
+                <p class="text-muted">Enter agent ID to start playing</p>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Agent ID</label>
+                <input type="text" id="agentId" class="form-control" placeholder="Enter Agent ID">
+                <small class="text-muted">Get the Agent ID from your Bingo agent</small>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Your Name</label>
+                <input type="text" id="playerName" class="form-control" placeholder="Enter your name">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Phone Number</label>
+                <input type="tel" id="phoneNumber" class="form-control" placeholder="Enter phone number">
+            </div>
+            <button class="btn btn-primary w-100" onclick="registerAndJoin()">
+                <i class="fas fa-sign-in-alt"></i> Join Game
+            </button>
+            <div class="text-center mt-3">
+                <small class="text-muted">Already registered? Just enter Agent ID to continue</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Interface -->
+    <div class="game-interface" id="gameInterface">
+        <!-- Header -->
+        <div class="game-header">
+            <div class="player-info">
+                <div class="player-badge">
+                    <i class="fas fa-user"></i> <span id="playerNameDisplay"></span>
+                </div>
+                <div class="player-badge" style="background: linear-gradient(135deg, #f6d365 0%, #fda085 100%); color: #333;">
+                    <i class="fas fa-trophy"></i> Won: <span id="totalWon">0</span> ETB
+                </div>
+            </div>
+            <div>
+                <i class="fas fa-id-card"></i> Agent: <span id="agentIdDisplay"></span>
+            </div>
+        </div>
+
+        <!-- Stats Bar -->
+        <div class="stats-bar">
+            <div class="stat">
+                <i class="fas fa-chart-line"></i>
+                <span>Jackpot:</span>
+                <span class="stat-value" id="jackpotAmount">0</span> ETB
+            </div>
+            <div class="stat">
+                <i class="fas fa-border-all"></i>
+                <span>My Cards:</span>
+                <span class="stat-value" id="myCardsCount">0</span>
+            </div>
+            <div class="stat">
+                <i class="fas fa-chart-simple"></i>
+                <span>Numbers Called:</span>
+                <span class="stat-value" id="numbersCalled">0</span>
+            </div>
+            <div class="stat">
+                <i class="fas fa-clock"></i>
+                <span>Status:</span>
+                <span class="stat-value" id="gameStatusText">Waiting</span>
+            </div>
+        </div>
+
+        <!-- Draw Area -->
+        <div class="draw-area">
+            <div class="current-call" id="currentCall">
+                <div class="call-letter">B</div>
+                <div class="call-number">0</div>
+            </div>
+            <div class="draw-history" id="drawHistory"></div>
+        </div>
+
+        <!-- Cards Selection -->
+        <div class="cards-selection" id="cardsSelection">
+            <div class="selection-header">
+                <h4><i class="fas fa-hand-pointer"></i> Select Your Cards (Max 10)</h4>
+                <span class="badge bg-primary fs-6" id="selectedCount">0</span>
+            </div>
+            <div class="card-grid" id="cardGrid"></div>
+            <div class="text-center mt-4">
+                <button class="btn btn-success btn-lg px-5" onclick="submitCards()">
+                    <i class="fas fa-check-circle"></i> Submit Cards to Agent
+                </button>
+            </div>
+        </div>
+
+        <!-- My Cards -->
+        <div class="my-cards" id="myCards" style="display: none;">
+            <h4><i class="fas fa-layer-group"></i> My Cards</h4>
+            <div class="cards-container" id="cardsContainer"></div>
+        </div>
+    </div>
+
+    <!-- Floating Bingo Button -->
+    <button class="bingo-btn" id="bingoButton" style="display: none;" onclick="claimBingo()">
+        <i class="fas fa-bell"></i>
+        <span>BINGO!</span>
+    </button>
+
+    <audio id="playerAudio"></audio>
+
+    <script>
+        let socket;
+        let playerUuid = null;
+        let selectedCards = [];
+        let myCardsList = [];
+        let gameActive = false;
+        let drawnNumbers = [];
+        let currentSession = null;
+        let agentId = null;
+        let currentBingoCard = null;
+        let playerName = '';
+
+        async function registerAndJoin() {
+            agentId = document.getElementById('agentId').value.trim();
+            playerName = document.getElementById('playerName').value.trim();
+            const phoneNumber = document.getElementById('phoneNumber').value.trim();
+
+            if (!agentId) {
+                Swal.fire('Error', 'Please enter Agent ID', 'error');
+                return;
+            }
+
+            if (!playerName) {
+                Swal.fire('Error', 'Please enter your name', 'error');
+                return;
+            }
+
+            if (!phoneNumber) {
+                Swal.fire('Error', 'Please enter phone number', 'error');
+                return;
+            }
+
+            Swal.fire({
+                title: 'Connecting...',
+                text: 'Please wait while we connect you to the game',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            socket = io();
+
+            socket.on('connect', () => {
+                socket.emit('player_register', {
+                    phoneNumber: phoneNumber,
+                    playerName: playerName,
+                    agentId: agentId
+                });
+            });
+
+            socket.on('player_registered', (data) => {
+                playerUuid = data.playerUuid;
+                document.getElementById('playerNameDisplay').textContent = playerName;
+                document.getElementById('agentIdDisplay').textContent = agentId;
+                
+                socket.emit('player_join_game', agentId);
+            });
+
+            socket.on('game_joined', (data) => {
+                currentSession = data.sessionId;
+                document.getElementById('loginScreen').style.display = 'none';
+                document.getElementById('gameInterface').style.display = 'block';
+                
+                Swal.fire({
+                    title: 'Connected!',
+                    text: 'You have successfully joined the game!',
+                    icon: 'success',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+                
+                loadAvailableCards();
+                addNotification('Welcome to Bingo! Select your cards to start playing.', 'success');
+            });
+
+            socket.on('game_state', (data) => {
+                drawnNumbers = data.drawnNumbers;
+                gameActive = data.gameActive;
+                document.getElementById('numbersCalled').textContent = drawnNumbers.length;
+                document.getElementById('gameStatusText').textContent = gameActive ? 'Playing' : 'Waiting';
+                document.getElementById('jackpotAmount').textContent = data.jackpot;
+                
+                if (gameActive && myCardsList.length > 0) {
+                    updateMyCards();
+                    document.getElementById('bingoButton').style.display = 'flex';
+                } else {
+                    document.getElementById('bingoButton').style.display = 'none';
+                }
+            });
+
+            socket.on('number_drawn', (data) => {
+                addToDrawHistory(data);
+                drawnNumbers.push(parseInt(data.number));
+                document.getElementById('numbersCalled').textContent = drawnNumbers.length;
+                updateCurrentCall(data);
+                playNumberSound(data);
+                updateMyCards();
+                addNotification(`Number called: ${data.numberText}`, 'info', 2000);
+            });
+
+            socket.on('game_started', (data) => {
+                gameActive = true;
+                document.getElementById('gameStatusText').textContent = 'Playing';
+                document.getElementById('jackpotAmount').textContent = data.jackpot;
+                addNotification('Game has started! Good luck!', 'success');
+                playSound('message_4');
+            });
+
+            socket.on('game_ended', (data) => {
+                gameActive = false;
+                document.getElementById('gameStatusText').textContent = 'Ended';
+                document.getElementById('bingoButton').style.display = 'none';
+                Swal.fire({
+                    title: 'Game Ended',
+                    text: `Final Jackpot: ${data.jackpot} ETB`,
+                    icon: 'info',
+                    confirmButtonText: 'OK'
+                });
+                addNotification(`Game ended! ${data.reason}`, 'warning');
+            });
+
+            socket.on('error', (message) => {
+                Swal.fire('Error', message, 'error');
+            });
+        }
+
+        async function loadAvailableCards() {
+            try {
+                const response = await fetch('/api/cards');
+                const cards = await response.json();
+                
+                const grid = document.getElementById('cardGrid');
+                grid.innerHTML = '';
+                
+                cards.forEach(card => {
+                    const cardDiv = document.createElement('div');
+                    cardDiv.className = 'card-item';
+                    cardDiv.textContent = card.number;
+                    cardDiv.onclick = () => toggleCardSelection(card.number, cardDiv);
+                    grid.appendChild(cardDiv);
+                });
+            } catch (error) {
+                console.error('Error loading cards:', error);
+            }
+        }
+
+        function toggleCardSelection(cardNumber, element) {
+            if (selectedCards.includes(cardNumber)) {
+                selectedCards = selectedCards.filter(c => c !== cardNumber);
+                element.classList.remove('selected');
+            } else {
+                if (selectedCards.length < 10) {
+                    selectedCards.push(cardNumber);
+                    element.classList.add('selected');
+                } else {
+                    Swal.fire('Limit Reached', 'Maximum 10 cards per player', 'warning');
+                }
+            }
+            document.getElementById('selectedCount').textContent = selectedCards.length;
+        }
+
+        async function submitCards() {
+            if (selectedCards.length === 0) {
+                Swal.fire('Error', 'Please select at least one card', 'error');
+                return;
+            }
+
+            Swal.fire({
+                title: 'Submitting Cards...',
+                text: 'Please wait',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            try {
+                const response = await fetch('/api/submit-cards', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        sessionId: currentSession,
+                        playerUuid: playerUuid,
+                        cards: selectedCards
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    myCardsList = [...selectedCards];
+                    document.getElementById('cardsSelection').style.display = 'none';
+                    document.getElementById('myCards').style.display = 'block';
+                    document.getElementById('myCardsCount').textContent = myCardsList.length;
+                    displayMyCards();
+                    
+                    Swal.fire({
+                        title: 'Success!',
+                        text: `${selectedCards.length} card(s) approved!`,
+                        icon: 'success',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                    
+                    addNotification(`${selectedCards.length} cards approved! Good luck!`, 'success');
+                } else {
+                    Swal.fire('Error', result.message, 'error');
+                    loadAvailableCards();
+                }
+            } catch (error) {
+                console.error('Error submitting cards:', error);
+                Swal.fire('Error', 'Failed to submit cards', 'error');
+            }
+        }
+
+        async function displayMyCards() {
+            const container = document.getElementById('cardsContainer');
+            container.innerHTML = '';
+            
+            for (const cardNumber of myCardsList) {
+                try {
+                    const response = await fetch(`/api/card/${cardNumber}`);
+                    const cardData = await response.json();
+                    
+                    const cardDiv = document.createElement('div');
+                    cardDiv.className = 'card-view';
+                    cardDiv.id = `card-${cardNumber}`;
+                    cardDiv.innerHTML = `
+                        <div class="card-title">
+                            <strong>Card #${cardNumber}</strong>
+                        </div>
+                        ${renderCardTable(cardData)}
+                        <button class="btn btn-warning btn-sm mt-2 w-100" onclick="checkThisCard(${cardNumber})">
+                            <i class="fas fa-search"></i> Check This Card
+                        </button>
+                    `;
+                    container.appendChild(cardDiv);
+                } catch (error) {
+                    console.error('Error loading card:', error);
+                }
+            }
+        }
+
+        function renderCardTable(cardData) {
+            let html = '<table class="card-table">';
+            html += '<thead><tr><th>B</th><th>I</th><th>N</th><th>G</th><th>O</th></tr></thead><tbody>';
+            
+            for (let row = 0; row < 5; row++) {
+                html += '<tr>';
+                for (let letter of ['B', 'I', 'N', 'G', 'O']) {
+                    let value = cardData[letter][row];
+                    const isMarked = value !== 'FREE' && drawnNumbers.includes(parseInt(value));
+                    const markedClass = isMarked ? 'marked' : '';
+                    html += `<td class="${markedClass}">${value}</td>`;
+                }
+                html += '</tr>';
+            }
+            
+            html += '</tbody></table>';
+            return html;
+        }
+
+        function updateMyCards() {
+            myCardsList.forEach(async cardNumber => {
+                const cardDiv = document.getElementById(`card-${cardNumber}`);
+                if (cardDiv) {
+                    try {
+                        const response = await fetch(`/api/card/${cardNumber}`);
+                        const cardData = await response.json();
+                        const tableHtml = renderCardTable(cardData);
+                        
+                        const existingContent = cardDiv.querySelector('.card-table');
+                        if (existingContent) {
+                            existingContent.outerHTML = tableHtml;
+                        }
+                        
+                        await checkCardWinner(cardNumber, cardData);
+                    } catch (error) {
+                        console.error('Error updating card:', error);
+                    }
+                }
+            });
+        }
+
+        async function checkCardWinner(cardNumber, cardData) {
+            const response = await fetch('/api/check-card-winner', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    cardNumber,
+                    drawnNumbers,
+                    sessionId: currentSession
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (result.isWinner) {
+                currentBingoCard = cardNumber;
+                const cardDiv = document.getElementById(`card-${cardNumber}`);
+                cardDiv.classList.add('winner');
+                document.getElementById('bingoButton').style.display = 'flex';
+                addNotification(`🎯 Card #${cardNumber} has a winning pattern! Click BINGO!`, 'success');
+                playSound('message_3');
+            }
+        }
+
+        async function checkThisCard(cardNumber) {
+            Swal.fire({
+                title: 'Checking Card...',
+                text: `Checking card #${cardNumber}`,
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            try {
+                const response = await fetch('/api/check-card-winner', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        cardNumber,
+                        drawnNumbers,
+                        sessionId: currentSession
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.isWinner) {
+                    Swal.fire({
+                        title: '🎉 WINNER! 🎉',
+                        html: `Card #${cardNumber} is a winner!<br>Click the BINGO button to claim your prize!`,
+                        icon: 'success',
+                        confirmButtonText: 'Claim Prize'
+                    }).then(() => {
+                        claimBingo(cardNumber);
+                    });
+                    playSound('message_2');
+                } else {
+                    // Show card details
+                    const cardResponse = await fetch(`/api/card/${cardNumber}`);
+                    const cardData = await cardResponse.json();
+                    
+                    Swal.fire({
+                        title: `Card #${cardNumber} Details`,
+                        html: `
+                            <div style="text-align: center;">
+                                ${renderCardTable(cardData)}
+                                <div class="mt-3">
+                                    <small>Marked: ${countMarkedNumbers(cardData)}/24 numbers</small>
+                                </div>
+                            </div>
+                        `,
+                        width: '600px',
+                        confirmButtonText: 'Close'
+                    });
+                    playSound('message_5');
+                }
+            } catch (error) {
+                console.error('Error checking card:', error);
+                Swal.fire('Error', 'Failed to check card', 'error');
+            }
+        }
+
+        function countMarkedNumbers(cardData) {
+            let count = 0;
+            for (let letter of ['B', 'I', 'N', 'G', 'O']) {
+                for (let row = 0; row < 5; row++) {
+                    const value = cardData[letter][row];
+                    if (value !== 'FREE' && drawnNumbers.includes(parseInt(value))) {
+                        count++;
+                    }
+                }
+            }
+            return count;
+        }
+
+        async function claimBingo(cardNumber = null) {
+            const bingoCard = cardNumber || currentBingoCard;
+            
+            if (!bingoCard) {
+                Swal.fire('Error', 'No winning card selected', 'error');
+                return;
+            }
+            
+            Swal.fire({
+                title: 'Claiming BINGO!',
+                text: 'Processing your win...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            try {
+                const response = await fetch('/api/claim-bingo', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        cardNumber: bingoCard,
+                        playerUuid,
+                        sessionId: currentSession,
+                        drawnNumbers
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    const totalWon = parseFloat(document.getElementById('totalWon').textContent) + result.prizeAmount;
+                    document.getElementById('totalWon').textContent = totalWon.toFixed(2);
+                    
+                    Swal.fire({
+                        title: '🎉 BINGO! CONGRATULATIONS! 🎉',
+                        html: `
+                            <div style="text-align: center;">
+                                <i class="fas fa-trophy fa-3x text-warning mb-3"></i>
+                                <h2 class="text-success">YOU WON!</h2>
+                                <p class="fs-3">${result.prizeAmount} ETB</p>
+                                <p>Winning Patterns:</p>
+                                <ul class="text-start">
+                                    ${result.patterns.map(p => `<li>🏆 ${p}</li>`).join('')}
+                                </ul>
+                            </div>
+                        `,
+                        icon: 'success',
+                        confirmButtonText: 'AMAZING! 🎊',
+                        confirmButtonColor: '#28a745'
+                    });
+                    
+                    playSound('message_2');
+                    document.getElementById('bingoButton').style.display = 'none';
+                    addNotification(`🎉 BINGO! You won ${result.prizeAmount} ETB! 🎉`, 'success');
+                    
+                    const cardDiv = document.getElementById(`card-${bingoCard}`);
+                    if (cardDiv) {
+                        cardDiv.classList.remove('winner');
+                    }
+                } else {
+                    Swal.fire({
+                        title: 'Claim Failed',
+                        text: result.message,
+                        icon: 'error',
+                        confirmButtonText: 'OK'
+                    });
+                    playSound('message_5');
+                }
+            } catch (error) {
+                console.error('Error claiming bingo:', error);
+                Swal.fire('Error', 'Failed to claim bingo', 'error');
+            }
+        }
+
+        function addToDrawHistory(data) {
+            const container = document.getElementById('drawHistory');
+            const item = document.createElement('div');
+            item.className = 'history-item';
+            item.textContent = data.numberText;
+            container.appendChild(item);
+            container.scrollLeft = container.scrollWidth;
+            
+            if (container.children.length > 30) {
+                container.removeChild(container.firstChild);
+            }
+        }
+
+        function updateCurrentCall(data) {
+            document.getElementById('currentCall').innerHTML = `
+                <div class="call-letter">${data.letter}</div>
+                <div class="call-number">${data.number}</div>
+            `;
+        }
+
+        function playNumberSound(data) {
+            playSound(`${data.numberText}.wav`);
+        }
+
+        function playSound(fileName) {
+            const audio = document.getElementById('playerAudio');
+            audio.src = `/audio/${fileName}`;
+            audio.play().catch(e => console.log('Audio error:', e));
+        }
+
+        function addNotification(message, type, duration = 3000) {
+            const notification = document.createElement('div');
+            notification.className = `alert alert-${type === 'success' ? 'success' : type === 'error' ? 'danger' : 'info'} toast-notification`;
+            notification.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+                ${message}
+            `;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, duration);
+        }
+
+        // Load player stats on page load
+        window.onload = function() {
+            console.log('Player interface ready');
+        };
+    </script>
+</body>
+</html>

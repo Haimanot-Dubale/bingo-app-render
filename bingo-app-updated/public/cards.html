@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bingo Cards Generator - PDF Export</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            min-height: 100vh;
+        }
+
+        .header-section {
+            background: rgba(255,255,255,0.98);
+            backdrop-filter: blur(10px);
+            padding: 20px 40px;
+            box-shadow: 0 4px 30px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .logo-area h1 {
+            font-size: 28px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .logo-area p {
+            font-size: 13px;
+            color: #666;
+            margin-top: 4px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .btn-premium {
+            padding: 10px 24px;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .btn-generate {
+            background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+            color: #333;
+            box-shadow: 0 4px 15px rgba(132,250,176,0.3);
+        }
+
+        .btn-pdf {
+            background: linear-gradient(135deg, #17a2b8 0%, #0d6efd 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(23,162,184,0.3);
+        }
+
+        .btn-premium:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+        }
+
+        .stats {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .stat-badge-premium {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 8px 18px;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 14px;
+            color: #495057;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .stat-badge-premium i {
+            margin-right: 8px;
+            color: #667eea;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.9);
+            backdrop-filter: blur(10px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .loading-overlay.active {
+            display: flex;
+        }
+
+        .spinner-premium {
+            width: 60px;
+            height: 60px;
+            border: 3px solid rgba(255,255,255,0.2);
+            border-top: 3px solid #84fab0;
+            border-right: 3px solid #8fd3f4;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .cards-container {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            padding: 30px;
+            min-height: 100vh;
+        }
+
+        .a4-page {
+            width: 100%;
+            max-width: 297mm;
+            min-height: 210mm;
+            margin: 0 auto 25px auto;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .two-cards-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            padding: 20px;
+            background: white;
+        }
+
+        .premium-card {
+            background: #0049B7;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            overflow: hidden;
+            border: 1px solid #e0e0e0;
+        }
+
+        .card-header-premium {
+            background: #0049B7;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .card-number-premium {
+            font-size: 20px;
+            font-weight: 800;
+            color: #ffffff;
+        }
+
+        .bingo-title-premium {
+            font-size: 12px;
+            letter-spacing: 3px;
+            color: #ffffff;
+            margin-top: 4px;
+        }
+
+        .bingo-table-premium {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .bingo-table-premium th {
+            background: #0049B7;
+            color: #ffffff;
+            padding: 8px 4px;
+            font-size: 35px;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        .bingo-table-premium td {
+            border: 1px solid #e0e0e0;
+            padding: 10px 4px;
+            text-align: center;
+            font-size: 60px;
+            font-weight: 600;
+            color: #ffffff;
+        }
+
+        .bingo-table-premium td.free-space-premium {
+            background: #fff;
+            color: #0049B7;
+        }
+
+        .card-footer-premium {
+            background: #f8f9fa;
+            padding: 8px;
+            text-align: center;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .watermark-premium {
+            font-size: 8px;
+            color: #adb5bd;
+        }
+
+        @media (max-width: 768px) {
+            .header-section {
+                padding: 15px 20px;
+            }
+            .controls {
+                justify-content: center;
+            }
+            .two-cards-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header-section">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div class="logo-area">
+                <h1><i class="fas fa-dice-d6"></i> Bingo Cards Studio</h1>
+                <p><i class="fas fa-check-circle" style="color: #28a745;"></i> 100% Unique Cards | PDF Export</p>
+            </div>
+            <div class="controls">
+                <div class="stats">
+                    <div class="stat-badge-premium">
+                        <i class="fas fa-border-all"></i> <span id="totalCards">0</span> Cards
+                    </div>
+                    <div class="stat-badge-premium">
+                        <i class="fas fa-file-pdf"></i> <span id="totalPages">0</span> Pages
+                    </div>
+                </div>
+                <button class="btn-premium btn-generate" onclick="loadCards()">
+                    <i class="fas fa-sync-alt"></i> Load Cards
+                </button>
+                <button class="btn-premium btn-pdf" onclick="exportToPDF()">
+                    <i class="fas fa-file-pdf"></i> Export PDF
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner-premium"></div>
+        <h3 style="color: white;">Loading Cards...</h3>
+        <p style="color: rgba(255,255,255,0.7);">Please wait</p>
+    </div>
+
+    <div class="cards-container" id="cardsContainer">
+        <div class="text-center p-5" style="background: rgba(255,255,255,0.1); border-radius: 20px; margin: 50px;">
+            <i class="fas fa-arrow-up fa-4x text-white mb-4"></i>
+            <h3 class="text-white">Click "Load Cards" to load all 100 unique bingo cards</h3>
+        </div>
+    </div>
+
+    <audio id="audioPlayer"></audio>
+
+    <script>
+        let allCards = [];
+        let cardsData = [];
+
+        async function loadCards() {
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            loadingOverlay.classList.add('active');
+            
+            try {
+                const response = await fetch('/api/cards');
+                allCards = await response.json();
+                
+                if (allCards.length === 0) {
+                    throw new Error('No cards found');
+                }
+                
+                cardsData = allCards;
+                document.getElementById('totalCards').textContent = cardsData.length;
+                document.getElementById('totalPages').textContent = Math.ceil(cardsData.length / 2);
+                
+                renderCards();
+                
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Ready!',
+                    text: `${cardsData.length} cards loaded`,
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            } catch (error) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Unable to load cards. Make sure server is running.'
+                });
+            } finally {
+                loadingOverlay.classList.remove('active');
+            }
+        }
+
+        function renderCards() {
+            const container = document.getElementById('cardsContainer');
+            container.innerHTML = '';
+            
+            if (cardsData.length === 0) return;
+            
+            for (let i = 0; i < cardsData.length; i += 2) {
+                const page = document.createElement('div');
+                page.className = 'a4-page';
+                const layout = document.createElement('div');
+                layout.className = 'two-cards-layout';
+                
+                layout.appendChild(createCardElement(cardsData[i], i + 1));
+                if (i + 1 < cardsData.length) {
+                    layout.appendChild(createCardElement(cardsData[i + 1], i + 2));
+                }
+                
+                page.appendChild(layout);
+                container.appendChild(page);
+            }
+        }
+
+        function createCardElement(card, cardNumber) {
+            const cardDiv = document.createElement('div');
+            cardDiv.className = 'premium-card';
+            const data = card.data;
+            
+            let tableHtml = '<table class="bingo-table-premium"><thead><tr>';
+            tableHtml += '<th>B</th><th>I</th><th>N</th><th>G</th><th>O</th>';
+            tableHtml += '</tr></thead><tbody>';
+            
+            for (let row = 0; row < 5; row++) {
+                tableHtml += '<tr>';
+                tableHtml += `<td class="${data.B[row] === 'FREE' ? 'free-space-premium' : ''}">${data.B[row]}</td>`;
+                tableHtml += `<td class="${data.I[row] === 'FREE' ? 'free-space-premium' : ''}">${data.I[row]}</td>`;
+                tableHtml += `<td class="${data.N[row] === 'FREE' ? 'free-space-premium' : ''}">${data.N[row]}</td>`;
+                tableHtml += `<td class="${data.G[row] === 'FREE' ? 'free-space-premium' : ''}">${data.G[row]}</td>`;
+                tableHtml += `<td class="${data.O[row] === 'FREE' ? 'free-space-premium' : ''}">${data.O[row]}</td>`;
+                tableHtml += '</tr>';
+            }
+            tableHtml += '</tbody></table>';
+            
+            cardDiv.innerHTML = `
+                <div class="card-header-premium">
+                    <div class="card-number-premium">Card #${cardNumber}</div>
+                    <div class="bingo-title-premium">MASTER BINGO</div>
+                </div>
+                ${tableHtml}
+                <div class="card-footer-premium">
+                    <div class="watermark-premium">Master Bingo • Card #${cardNumber}</div>
+                </div>
+            `;
+            
+            return cardDiv;
+        }
+
+        // PDF Export using jsPDF - Direct drawing with larger fonts
+        async function exportToPDF() {
+            if (cardsData.length === 0) {
+                Swal.fire('No Cards', 'Please load cards first', 'warning');
+                return;
+            }
+
+            Swal.fire({
+                title: 'Generating PDF...',
+                text: `Creating PDF with ${cardsData.length} cards`,
+                allowOutsideClick: false,
+                didOpen: () => Swal.showLoading()
+            });
+
+            try {
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({
+                    orientation: 'landscape',
+                    unit: 'mm',
+                    format: 'a4'
+                });
+
+                const cardsPerPage = 2;
+                const pageWidth = 297;
+                const pageHeight = 210;
+                const cardWidth = 128;
+                const cardHeight = 170;
+                const startX = 12;
+                const startY = 15;
+                
+                let pageNum = 1;
+                
+                for (let i = 0; i < cardsData.length; i += cardsPerPage) {
+                    if (i > 0) {
+                        pdf.addPage();
+                        pageNum++;
+                    }
+                    
+                    // First card on page
+                    const card1 = cardsData[i];
+                    drawCard(pdf, card1, i + 1, startX, startY, cardWidth, cardHeight);
+                    
+                    // Second card on page
+                    if (i + 1 < cardsData.length) {
+                        const card2 = cardsData[i + 1];
+                        const secondCardX = startX + cardWidth + 12;
+                        drawCard(pdf, card2, i + 2, secondCardX, startY, cardWidth, cardHeight);
+                    }
+                    
+                    // Add page number
+                    pdf.setFontSize(10);
+                    pdf.setTextColor(150, 150, 150);
+                    pdf.text(`Page ${pageNum}`, pageWidth / 2, pageHeight - 8, { align: 'center' });
+                }
+                
+                pdf.save(`bingo_cards_${Date.now()}.pdf`);
+                
+                Swal.fire({
+                    icon: 'success',
+                    title: 'PDF Generated!',
+                    text: `${cardsData.length} cards saved successfully`,
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+                
+            } catch (error) {
+                console.error('PDF Error:', error);
+                Swal.fire('Error', 'Failed to generate PDF', 'error');
+            }
+        }
+
+        function drawCard(pdf, card, cardNumber, x, y, width, height) {
+            const data = card.data;
+            
+            // Draw card border
+            pdf.setDrawColor(200, 200, 200);
+            pdf.setFillColor(255, 255, 255);
+            pdf.rect(x, y, width, height, 'FD');
+            
+            // Draw header background
+            pdf.setFillColor(255, 193, 7);
+            pdf.rect(x, y, width, 28, 'F');
+            
+            // Card number
+            pdf.setFontSize(18);
+            pdf.setFont('helvetica', 'bold');
+            pdf.setTextColor(255, 255, 255);
+            pdf.text(`Card #${cardNumber}`, x + width / 2, y + 16, { align: 'center' });
+            
+            // BINGO title
+            pdf.setFontSize(14);
+            pdf.setFont('helvetica', 'bold');
+            pdf.setTextColor(255, 255, 255);
+            pdf.text('B I N G O', x + width / 2, y + 26, { align: 'center' });
+            
+            // Table headers
+            const headers = ['B', 'I', 'N', 'G', 'O'];
+            const cellWidth = (width - 8) / 5;
+            const tableStartY = y + 34;
+            const cellHeight = 22;
+            
+            // Draw headers
+            for (let col = 0; col < 5; col++) {
+                pdf.setFillColor(255, 193, 7);
+                pdf.rect(x + 4 + (col * cellWidth), tableStartY, cellWidth, 11, 'F');
+                pdf.setFontSize(20);
+                pdf.setFont('helvetica', 'bold');
+                pdf.setTextColor(255, 255, 255);
+                pdf.text(headers[col], x + 4 + (col * cellWidth) + cellWidth / 2, tableStartY + 8.5, { align: 'center' });
+            }
+            
+            // Draw cells
+            for (let row = 0; row < 5; row++) {
+                const cellY = tableStartY + 11 + (row * cellHeight);
+                
+                for (let col = 0; col < 5; col++) {
+                    const letters = ['B', 'I', 'N', 'G', 'O'];
+                    const letter = letters[col];
+                    let value = data[letter][row];
+                    const isFree = value === 'FREE';
+                    
+                    // Cell border
+                    pdf.setDrawColor(200, 200, 200);
+                    pdf.rect(x + 4 + (col * cellWidth), cellY, cellWidth, cellHeight);
+                    
+                    // Cell background for FREE
+                    if (isFree) {
+                        pdf.setFillColor(246, 211, 101, 0.4);
+                        pdf.rect(x + 4 + (col * cellWidth), cellY, cellWidth, cellHeight, 'F');
+                    }
+                    
+                    // Cell text - 30px bold
+                    pdf.setFontSize(30);
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setTextColor(40, 40, 40);
+                    let textY = cellY + cellHeight / 2 + 9;
+                    
+                    // Adjust text position for two-digit numbers
+                    let textValue = String(value);
+                    pdf.text(textValue, x + 4 + (col * cellWidth) + cellWidth / 2, textY, { align: 'center' });
+                    
+                    // Star for FREE
+                    if (isFree) {
+                        pdf.setFontSize(10);
+                        pdf.setTextColor(255, 100, 0);
+                        pdf.text('⭐', x + 4 + (col * cellWidth) + cellWidth - 5, cellY + 6);
+                    }
+                }
+            }
+            
+            // Footer
+            pdf.setFontSize(8);
+            pdf.setFont('helvetica', 'normal');
+            pdf.setTextColor(150, 150, 150);
+            pdf.text(`Master Bingo • Card #${cardNumber}`, x + width / 2, y + height - 6, { align: 'center' });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => loadCards(), 500);
+        });
+    </script>
+<script src="/js/shield.js"></script>
+</body>
+</html>

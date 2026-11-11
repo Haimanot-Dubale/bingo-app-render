@@ -1,0 +1,4431 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Master Bingo</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        /* Theme Variables */
+        :root {
+            --bg-gradient-start: #0f0c29;
+            --bg-gradient-mid: #302b63;
+            --bg-gradient-end: #24243e;
+            --navbar-bg: rgba(255, 255, 255, 0.95);
+            --navbar-text: #333;
+            --card-bg: white;
+            --card-text: #333;
+            --draw-chip-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --draw-chip-text: white;
+            --board-bg: white;
+            --number-bg: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            --number-text: #333;
+            --sidebar-bg: rgba(255, 255, 255, 0.95);
+            --sidebar-text: #333;
+            --modal-overlay: rgba(0, 0, 0, 0.8);
+            --check-modal-bg: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            --table-header-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --table-cell-bg: #fafafa;
+            --border-color: #e8e8e8;
+        }
+
+        body.light-theme {
+            --bg-gradient-start: #f5f7fa;
+            --bg-gradient-mid: #c3cfe2;
+            --bg-gradient-end: #e8eef4;
+            --navbar-bg: rgba(255, 255, 255, 0.98);
+            --navbar-text: #333;
+            --card-bg: white;
+            --card-text: #333;
+            --draw-chip-bg: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            --draw-chip-text: white;
+            --board-bg: white;
+            --number-bg: linear-gradient(135deg, #ffffff 0%, #e9ecef 100%);
+            --number-text: #495057;
+            --sidebar-bg: rgba(255, 255, 255, 0.98);
+            --sidebar-text: #333;
+            --modal-overlay: rgba(0, 0, 0, 0.7);
+            --check-modal-bg: linear-gradient(135deg, #e0e0e0 0%, #f5f5f5 50%, #ffffff 100%);
+            --table-header-bg: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            --table-cell-bg: #ffffff;
+            --border-color: #dee2e6;
+        }
+
+        body.dark-theme {
+            --bg-gradient-start: #0f0c29;
+            --bg-gradient-mid: #302b63;
+            --bg-gradient-end: #24243e;
+            --navbar-bg: rgba(25, 25, 35, 0.95);
+            --navbar-text: #e0e0e0;
+            --card-bg: #1e1e2e;
+            --card-text: #e0e0e0;
+            --draw-chip-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --draw-chip-text: white;
+            --board-bg: #1e1e2e;
+            --number-bg: linear-gradient(135deg, #2d2d3d 0%, #3d3d4d 100%);
+            --number-text: #e0e0e0;
+            --sidebar-bg: rgba(25, 25, 35, 0.98);
+            --sidebar-text: #e0e0e0;
+            --modal-overlay: rgba(0, 0, 0, 0.9);
+            --check-modal-bg: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            --table-header-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --table-cell-bg: #2d2d3d;
+            --border-color: #404050;
+        }
+
+        /* Joker Display Styles */
+        .joker-column-highlight {
+            animation: jokerPulse 1s ease-in-out 3;
+            background: linear-gradient(135deg, #ffd700 0%, #ff6b6b 100%) !important;
+            color: white !important;
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.8);
+            transform: scale(1.1);
+        }
+
+        @keyframes jokerPulse {
+            0% {
+                transform: scale(1);
+                box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+            }
+
+            50% {
+                transform: scale(1.15);
+                box-shadow: 0 0 40px rgba(255, 215, 0, 1);
+            }
+
+            100% {
+                transform: scale(1);
+                box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+            }
+        }
+
+        .joker-badge {
+            background: linear-gradient(135deg, #ffd700 0%, #ff6b6b 100%);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 12px;
+            animation: jokerBadgePulse 1s infinite;
+            display: inline-block;
+        }
+
+        @keyframes jokerBadgePulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        .joker-chip {
+            background: linear-gradient(135deg, #ffd700 0%, #ff6b6b 100%) !important;
+            color: white !important;
+            font-weight: bold;
+            animation: jokerChipPulse 0.5s ease-in-out 3;
+            border: 2px solid #ffd700;
+        }
+
+        @keyframes jokerChipPulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.1);
+            }
+        }
+
+        .last-call-circle.joker-active {
+            background: linear-gradient(135deg, #ffd700 0%, #ff6b6b 100%) !important;
+            animation: jokerCallPulse 0.5s ease-in-out infinite;
+        }
+
+        @keyframes jokerCallPulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+                box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+            }
+
+            50% {
+                transform: scale(1.05);
+                box-shadow: 0 0 40px rgba(255, 215, 0, 0.8);
+            }
+        }
+
+        .joker-text {
+            color: #ffd700;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-mid) 50%, var(--bg-gradient-end) 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        body:fullscreen {
+            background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-mid) 50%, var(--bg-gradient-end) 100%);
+        }
+
+        .login-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .login-container {
+            background: white;
+            border-radius: 30px;
+            padding: 40px;
+            width: 400px;
+            max-width: 90%;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.5s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .main-app {
+            display: none;
+        }
+
+        .top-navbar {
+            background: var(--navbar-bg);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+            padding: 12px 30px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            color: var(--navbar-text);
+        }
+
+        .logo-icon {
+            font-size: 28px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .fw-bold {
+            color: var(--navbar-text);
+        }
+
+        .draw-delay-badge {
+            background: #e9ecef;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            color: #495057;
+        }
+
+        .right-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .fullscreen-btn,
+        .reset-btn,
+        .dropdown-btn,
+        .theme-btn {
+            padding: 8px 20px;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border: none;
+        }
+
+        .fullscreen-btn {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+        }
+
+        .reset-btn {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+            color: white;
+        }
+
+        .dropdown-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .theme-btn {
+            background: linear-gradient(135deg, #ff6b6b 0%, #feca57 100%);
+            color: white;
+        }
+
+        .fullscreen-btn:hover,
+        .reset-btn:hover:not(:disabled),
+        .dropdown-btn:hover,
+        .theme-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .reset-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 100%;
+            margin-top: 10px;
+            background: white;
+            min-width: 250px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            z-index: 101;
+            overflow: hidden;
+        }
+
+        body.dark-theme .dropdown-content {
+            background: #2d2d3d;
+            color: #e0e0e0;
+        }
+
+        .dropdown-content.show {
+            display: block;
+            animation: dropdownFade 0.3s ease;
+        }
+
+        @keyframes dropdownFade {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .dropdown-item {
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background 0.2s ease;
+        }
+
+        body.dark-theme .dropdown-item {
+            border-bottom: 1px solid #404050;
+        }
+
+        .dropdown-item:hover {
+            background: #f8f9fa;
+        }
+
+        body.dark-theme .dropdown-item:hover {
+            background: #3d3d4d;
+        }
+
+        .dropdown-item:last-child {
+            border-bottom: none;
+        }
+
+        .dropdown-label {
+            font-size: 12px;
+            color: #666;
+            font-weight: 500;
+        }
+
+        body.dark-theme .dropdown-label {
+            color: #aaa;
+        }
+
+        .dropdown-value {
+            font-size: 14px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .dropdown-divider {
+            height: 1px;
+            background: #e0e0e0;
+            margin: 8px 0;
+        }
+
+        body.dark-theme .dropdown-divider {
+            background: #404050;
+        }
+
+        .select-cards-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+            z-index: 97;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .select-cards-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+        }
+
+        .card-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--modal-overlay);
+            backdrop-filter: blur(8px);
+            z-index: 2000;
+        }
+
+        .card-modal.active {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .card-modal-content {
+            background: var(--card-bg);
+            border-radius: 30px;
+            width: 95%;
+            max-width: 1500px;
+            max-height: 85vh;
+            overflow: hidden;
+            animation: modalSlideIn 0.4s ease;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9) translateY(-30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .card-modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: white;
+        }
+
+        .card-modal-header h3 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        .modal-close {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .modal-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: rotate(90deg);
+        }
+
+        .card-modal-body {
+            padding: 25px;
+            max-height: calc(85vh - 80px);
+            overflow-y: auto;
+            background: var(--card-bg);
+            color: var(--card-text);
+        }
+
+        .card-selection-stats {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--border-color);
+            color: var(--card-text);
+        }
+
+        .selected-badge {
+            background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+            padding: 8px 20px;
+            border-radius: 50px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .card-grid-modal {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 12px;
+        }
+
+        .card-item-modal {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-align: center;
+            padding: 15px 10px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+            font-size: 35px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card-item-modal.selected {
+            background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+            color: #333;
+            transform: scale(1.05);
+        }
+
+        .card-item-modal.selected::after {
+            content: '✓';
+            position: absolute;
+            top: 5px;
+            right: 10px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .modal-actions {
+            margin-top: 25px;
+            display: flex;
+            gap: 15px;
+            justify-content: flex-end;
+        }
+
+        .btn-modal {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 50px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-modal-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-modal-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .controls-sidebar {
+            position: fixed;
+            left: 0;
+            top: 70px;
+            bottom: 0;
+            width: 240px;
+            background: var(--sidebar-bg);
+            backdrop-filter: blur(10px);
+            box-shadow: 2px 0 20px rgba(0, 0, 0, 0.1);
+            z-index: 99;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s ease;
+        }
+
+        .controls-sidebar.collapsed {
+            transform: translateX(-240px);
+        }
+
+        .sidebar-toggle-btn {
+            position: fixed;
+            left: 250px;
+            top: 85px;
+            background: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            z-index: 100;
+            transition: all 0.3s ease;
+        }
+
+        body.dark-theme .sidebar-toggle-btn {
+            background: #2d2d3d;
+            color: white;
+        }
+
+        .sidebar-toggle-btn.collapsed {
+            left: 20px;
+        }
+
+        .control-group {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .control-title {
+            font-size: 12px;
+            text-transform: uppercase;
+            color: #999;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        body.dark-theme .control-title {
+            color: #aaa;
+        }
+
+        .control-btn {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 10px;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .control-btn i {
+            margin-right: 8px;
+        }
+
+        .control-btn:hover:not(:disabled) {
+            transform: translateX(5px);
+        }
+
+        .btn-start {
+            background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+            color: #333;
+        }
+
+        .btn-pause {
+            background: #ffc107;
+            color: #333;
+        }
+
+        .control-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .big-check-btn {
+            background: linear-gradient(135deg, #17a2b8 0%, #0d6efd 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 15px;
+            text-align: center;
+            cursor: pointer;
+            margin: 15px;
+            transition: all 0.3s ease;
+            font-weight: bold;
+            font-size: 16px;
+            box-shadow: 0 4px 15px rgba(13, 110, 253, 0.3);
+        }
+
+        .prize-section-sidebar {
+            padding: 15px;
+            margin-top: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .prize-circle-modern {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            max-width: 180px;
+            margin: 0 auto;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            position: relative;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .prize-circle-modern.jackpot-modern {
+            background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
+            color: #333;
+        }
+
+        .prize-icon {
+            font-size: 32px;
+            margin-bottom: 5px;
+        }
+
+        .prize-label-modern {
+            color: white;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            opacity: 0.9;
+            font-weight: 600;
+        }
+
+        .prize-value-modern {
+            color: white;
+            font-size: 24px;
+            font-weight: 800;
+            margin: 5px 0;
+        }
+
+        .prize-sub-modern {
+            color: white;
+            font-size: 9px;
+            opacity: 0.8;
+        }
+
+        .jackpot-badge-modern {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: linear-gradient(135deg, #ff0844, #ffb199);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 50px;
+            font-size: 8px;
+            font-weight: bold;
+            animation: pulse-jackpot 1s infinite;
+        }
+
+        @keyframes pulse-jackpot {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.1);
+            }
+        }
+
+        .main-content-area {
+            margin-left: 240px;
+            margin-top: 70px;
+            padding: 20px;
+            transition: margin-left 0.3s ease;
+        }
+
+        .main-content-area.full-width {
+            margin-left: 20px;
+        }
+
+        .last-call-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .last-call-circle {
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        .last-call-label {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.8);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .last-call-number {
+            font-size: 56px;
+            font-weight: bold;
+            color: #ffd700;
+            line-height: 1;
+        }
+
+        .last-call-letter {
+            font-size: 28px;
+            font-weight: bold;
+            color: white;
+        }
+
+        .draw-strip-container {
+            background: var(--navbar-bg);
+            border-radius: 12px;
+            padding: 10px;
+            margin-bottom: 20px;
+        }
+
+        .draw-strip-title {
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }
+
+        body.dark-theme .draw-strip-title {
+            color: #aaa;
+        }
+
+        .draw-strip {
+            display: flex;
+            overflow-x: auto;
+            gap: 8px;
+            padding: 5px;
+        }
+
+        .draw-chip {
+            background: var(--draw-chip-bg);
+            color: var(--draw-chip-text);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 13px;
+            white-space: nowrap;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .bingo-board-smart {
+            background: var(--board-bg);
+            border-radius: 24px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            overflow-x: auto;
+        }
+
+        .smart-bingo-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-width: max-content;
+        }
+
+        .bingo-row-smart {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: nowrap;
+        }
+
+        .row-letter {
+            min-width: 75px;
+            width: 75px;
+            height: 75px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 34px;
+            font-weight: 800;
+            color: white;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            flex-shrink: 0;
+            transition: all 0.5s ease;
+        }
+
+        .numbers-container {
+            flex: 1;
+            display: flex;
+            flex-wrap: nowrap;
+            gap: 10px;
+            overflow-x: auto;
+            padding-bottom: 5px;
+        }
+
+        .number-circle {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--number-bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 40px;
+            color: var(--number-text);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+            flex-shrink: 0;
+        }
+
+        .number-circle.drawn {
+            background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+            transform: scale(1.08);
+            color: #1a5c2e;
+        }
+
+        /* Check Card Modal Styles */
+        .check-card-modal-new {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--modal-overlay);
+            backdrop-filter: blur(8px);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .check-card-modal-new.active {
+            display: flex;
+        }
+
+        .check-card-content-new {
+            background: var(--check-modal-bg);
+            border-radius: 0;
+            width: 100%;
+            height: 100%;
+            max-width: 100%;
+            max-height: 100%;
+            overflow-y: auto;
+            animation: none;
+            box-shadow: none;
+            border: none;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .check-card-header-new {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: white;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .check-card-header-new h3 {
+            margin: 0;
+            font-size: 22px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .check-card-close-new {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 16px;
+        }
+
+        .check-card-close-new:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: rotate(90deg);
+        }
+
+        .check-card-body-new {
+            padding: 20px 40px;
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            color: var(--card-text);
+        }
+
+        .card-number-input-area {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+            padding: 15px 25px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 60px;
+            backdrop-filter: blur(10px);
+            width: auto;
+            min-width: 450px;
+            justify-content: center;
+        }
+
+        .card-number-input-area input {
+            width: 200px;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 50px;
+            font-size: 16px;
+            background: white;
+            color: #333;
+            outline: none;
+            text-align: center;
+        }
+
+        .card-number-input-area button {
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #e17055 0%, #d63031 100%);
+            border: none;
+            border-radius: 50px;
+            color: white;
+            font-weight: bold;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .card-number-input-area button:hover {
+            transform: scale(1.02);
+            box-shadow: 0 5px 15px rgba(214, 48, 49, 0.3);
+        }
+
+        .check-card-board {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 20px 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            width: auto;
+            min-width: 550px;
+            display: inline-block;
+            transition: all 0.3s ease;
+        }
+
+        .check-card-board.winner-glow {
+            animation: winnerGlow 0.5s ease-in-out 3;
+            box-shadow: 0 0 30px rgba(0, 184, 148, 0.8);
+            border: 2px solid #00b894;
+        }
+
+        .check-card-board.loser-glow {
+            animation: loserGlow 0.5s ease-in-out 3;
+            box-shadow: 0 0 30px rgba(214, 48, 49, 0.8);
+            border: 2px solid #d63031;
+        }
+
+        @keyframes winnerGlow {
+            0% {
+                box-shadow: 0 0 0px rgba(0, 184, 148, 0.5);
+                border-color: #00b894;
+            }
+
+            50% {
+                box-shadow: 0 0 40px rgba(0, 184, 148, 1);
+                border-color: #55efc4;
+            }
+
+            100% {
+                box-shadow: 0 0 0px rgba(0, 184, 148, 0.5);
+                border-color: #00b894;
+            }
+        }
+
+        @keyframes loserGlow {
+            0% {
+                box-shadow: 0 0 0px rgba(214, 48, 49, 0.5);
+                border-color: #d63031;
+            }
+
+            50% {
+                box-shadow: 0 0 40px rgba(214, 48, 49, 1);
+                border-color: #ff7675;
+            }
+
+            100% {
+                box-shadow: 0 0 0px rgba(214, 48, 49, 0.5);
+                border-color: #d63031;
+            }
+        }
+
+        .check-card-title-new {
+            color: var(--card-text);
+            font-size: 22px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .check-card-table-new {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0 auto;
+            background: var(--card-bg);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 3px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .check-card-table-new th {
+            background: var(--table-header-bg);
+            color: white;
+            padding: 12px;
+            text-align: center;
+            font-size: 30px;
+            font-weight: bold;
+        }
+
+        .check-card-table-new td {
+            border: 1px solid var(--border-color);
+            padding: 12px 10px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 35px;
+            transition: all 0.2s ease;
+            background: var(--table-cell-bg);
+            color: var(--card-text);
+        }
+
+        .check-card-table-new td.marked {
+            background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+            color: #1a5c2e;
+            position: relative;
+        }
+
+        .check-card-table-new td.marked::after {
+            content: '✓';
+            position: absolute;
+            top: 3px;
+            right: 8px;
+            font-size: 12px;
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        .check-card-table-new td.joker-marked {
+            background: linear-gradient(135deg, #ffd700 0%, #ff6b6b 100%);
+            color: white;
+            position: relative;
+        }
+
+        .check-card-table-new td.joker-marked::after {
+            content: '🃏';
+            position: absolute;
+            top: 3px;
+            right: 8px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .check-card-table-new td.pattern-highlight {
+            background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%);
+            color: #2d3436;
+            box-shadow: inset 0 0 0 2px #f39c12;
+            position: relative;
+        }
+
+        .check-card-table-new td.pattern-highlight::after {
+            content: '★';
+            position: absolute;
+            top: 3px;
+            right: 8px;
+            font-size: 12px;
+            color: #f39c12;
+            font-weight: bold;
+        }
+
+        .patterns-container-new {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 15px 25px;
+            margin-top: 15px;
+            width: auto;
+            min-width: 450px;
+        }
+
+        .patterns-title-new {
+            color: var(--card-text);
+            font-size: 16px;
+            margin-bottom: 12px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: center;
+        }
+
+        .patterns-grid-new {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .pattern-badge-new {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 50px;
+            padding: 6px 15px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            color: var(--card-text);
+        }
+
+        .pattern-badge-new.valid {
+            background: linear-gradient(135deg, #00b894 0%, #00cec9 100%);
+            color: white;
+        }
+
+        .pattern-badge-new.missed {
+            background: linear-gradient(135deg, #d63031 0%, #e17055 100%);
+            color: white;
+            text-decoration: line-through;
+            opacity: 0.8;
+        }
+
+        .pattern-badge-new.pending {
+            background: linear-gradient(135deg, #fdcb6e 0%, #f39c12 100%);
+            color: #2d3436;
+        }
+
+        .pattern-badge-new.joker-pattern {
+            background: linear-gradient(135deg, #ffd700 0%, #ff6b6b 100%);
+            color: white;
+            animation: jokerBadgePulse 1s infinite;
+        }
+
+        .winner-result-message {
+            text-align: center;
+            padding: 12px;
+            border-radius: 10px;
+            font-weight: bold;
+            margin-top: 15px;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .winner-result-message.winner {
+            background: linear-gradient(135deg, #00b894 0%, #00cec9 100%);
+            color: white;
+        }
+
+        .winner-result-message.loser {
+            background: linear-gradient(135deg, #d63031 0%, #e17055 100%);
+            color: white;
+        }
+
+        .error-message-card {
+            text-align: center;
+            padding: 30px 40px;
+            color: #ff6b6b;
+            font-size: 16px;
+            background: rgba(255, 107, 107, 0.1);
+            border-radius: 20px;
+            border: 1px solid #ff6b6b;
+            min-width: 400px;
+        }
+
+        .error-message-card i {
+            font-size: 40px;
+            margin-bottom: 10px;
+        }
+
+        .empty-card-message {
+            text-align: center;
+            padding: 50px;
+            color: var(--card-text);
+            font-size: 18px;
+            opacity: 0.8;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            min-width: 400px;
+        }
+
+        .joker-announcement {
+            background: linear-gradient(135deg, #ffd700 0%, #ff6b6b 100%);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 12px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 18px;
+            margin: 10px 0;
+            animation: jokerBadgePulse 1s infinite;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .controls-sidebar {
+                transform: translateX(-100%);
+            }
+
+            .controls-sidebar.open {
+                transform: translateX(0);
+            }
+
+            .main-content-area {
+                margin-left: 0;
+            }
+
+            .check-card-table-new td {
+                padding: 8px 5px;
+                font-size: 12px;
+            }
+
+            .check-card-table-new th {
+                padding: 8px;
+                font-size: 14px;
+            }
+
+            .patterns-grid-new {
+                gap: 6px;
+            }
+
+            .pattern-badge-new {
+                padding: 4px 10px;
+                font-size: 10px;
+            }
+
+            .card-number-input-area {
+                flex-direction: column;
+                min-width: auto;
+                width: 90%;
+                border-radius: 20px;
+            }
+
+            .check-card-board {
+                min-width: auto;
+                width: 95%;
+                padding: 15px;
+            }
+
+            .patterns-container-new {
+                min-width: auto;
+                width: 95%;
+            }
+
+            .check-card-body-new {
+                padding: 15px;
+            }
+
+            .error-message-card {
+                min-width: auto;
+                width: 90%;
+                padding: 20px;
+            }
+
+            .empty-card-message {
+                min-width: auto;
+                width: 90%;
+                padding: 30px;
+            }
+        }
+
+
+        /* --- TRIGGER BUTTON --- */
+        .trigger-btn {
+            background: rgba(0, 130, 220, 0.6);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            border: 1px solid rgba(100, 200, 255, 0.2);
+            padding: 1.2rem 3rem;
+            border-radius: 60px;
+            font-weight: 700;
+            font-size: 1.4rem;
+            color: #fff;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            letter-spacing: 0.5px;
+        }
+
+        .trigger-btn:hover {
+            background: rgba(0, 150, 250, 0.7);
+            border-color: rgba(130, 210, 255, 0.35);
+            transform: scale(1.05);
+            box-shadow: 0 12px 40px rgba(0, 40, 100, 0.6);
+        }
+
+        .trigger-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* --- MODAL OVERLAY --- */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        /* --- MODAL CARD --- */
+        .modal-card {
+            background: transparent;
+            border-radius: 4rem;
+            padding: 1.5rem;
+            max-width: 860px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+
+        /* close button */
+        .close-btn {
+            position: absolute;
+            top: -15px;
+            right: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(6px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #fff;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.8rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .close-btn:hover {
+            background: rgba(255, 70, 70, 0.4);
+            transform: scale(1.1);
+            border-color: rgba(255, 100, 100, 0.3);
+        }
+
+        /* --- POT CONTAINER --- */
+        .pot-wrapper {
+            position: relative;
+            width: 640px;
+            height: 640px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .pot {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: radial-gradient(ellipse at 30% 30%, #2a4a6a, #0d1f33);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), inset 0 -20px 60px rgba(0, 0, 0, 0.6), inset 0 10px 30px rgba(100, 180, 255, 0.08), 0 0 0 4px rgba(80, 140, 200, 0.15), 0 0 0 8px rgba(40, 80, 130, 0.08);
+            transition: transform 0.15s cubic-bezier(0.2, 1.2, 0.4, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .pot::before {
+            content: '';
+            position: absolute;
+            inset: 18px;
+            border-radius: 50%;
+            background: radial-gradient(ellipse at 50% 40%, rgba(120, 200, 255, 0.04), transparent 70%);
+            box-shadow: inset 0 0 60px rgba(0, 20, 40, 0.5);
+            pointer-events: none;
+            border: 1px solid rgba(255, 255, 255, 0.02);
+            z-index: 1;
+        }
+
+        .pot::after {
+            content: '';
+            position: absolute;
+            top: -6px;
+            left: 10%;
+            width: 80%;
+            height: 20px;
+            border-radius: 50%;
+            background: radial-gradient(ellipse at 50% 0%, rgba(180, 220, 255, 0.15), transparent 70%);
+            filter: blur(4px);
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .number-grid {
+            position: relative;
+            width: 92%;
+            height: 92%;
+            border-radius: 50%;
+            z-index: 3;
+        }
+
+        .number-item {
+            position: absolute;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #fff;
+            text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.15), inset 0 -3px 8px rgba(0, 0, 0, 0.25), inset 0 2px 6px rgba(255, 255, 255, 0.2);
+            cursor: default;
+            will-change: transform, left, top;
+            transform: translate(-50%, -50%);
+            user-select: none;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: left 0.35s cubic-bezier(0.34, 1.4, 0.55, 1), top 0.35s cubic-bezier(0.34, 1.4, 0.55, 1), transform 0.35s cubic-bezier(0.34, 1.4, 0.55, 1);
+            letter-spacing: 0.2px;
+        }
+
+        .number-item[data-value="1"],
+        .number-item[data-value="2"],
+        .number-item[data-value="3"] {
+            width: 40px;
+            height: 40px;
+            font-size: 0.75rem;
+        }
+
+        @keyframes shakePot {
+            0% {
+                transform: rotate(0deg) scale(1);
+            }
+
+            12% {
+                transform: rotate(-8deg) scale(1.03);
+            }
+
+            25% {
+                transform: rotate(10deg) scale(0.97);
+            }
+
+            37% {
+                transform: rotate(-7deg) scale(1.02);
+            }
+
+            50% {
+                transform: rotate(8deg) scale(0.98);
+            }
+
+            62% {
+                transform: rotate(-5deg) scale(1.01);
+            }
+
+            75% {
+                transform: rotate(5deg) scale(0.99);
+            }
+
+            87% {
+                transform: rotate(-2deg) scale(1);
+            }
+
+            100% {
+                transform: rotate(0deg) scale(1);
+            }
+        }
+
+        .pot.shaking {
+            animation: shakePot 0.5s cubic-bezier(0.2, 1.2, 0.4, 1) 4;
+            animation-iteration-count: 4;
+        }
+
+        @keyframes jumpBall {
+            0% {
+                transform: translate(-50%, -50%) scale(1) rotate(0deg);
+            }
+
+            30% {
+                transform: translate(-50%, -50%) scale(1.5) rotate(25deg);
+            }
+
+            60% {
+                transform: translate(-50%, -50%) scale(0.8) rotate(-15deg);
+            }
+
+            100% {
+                transform: translate(-50%, -50%) scale(1) rotate(0deg);
+            }
+        }
+
+        .number-item.jumping {
+            animation: jumpBall 0.35s cubic-bezier(0.2, 1.2, 0.4, 1) 1;
+        }
+
+        .badge {
+            color: #b0d0f0;
+            font-size: 0.9rem;
+            background: rgba(0, 20, 40, 0.5);
+            padding: 0.4rem 1.4rem;
+            border-radius: 60px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            backdrop-filter: blur(2px);
+            font-weight: 500;
+            margin-top: 1rem;
+        }
+
+        .badge span {
+            font-weight: 700;
+            color: #c6e2ff;
+        }
+
+        /* Responsive */
+        @media (max-width: 720px) {
+            .pot-wrapper {
+                width: 420px;
+                height: 420px;
+            }
+
+            .number-item {
+                width: 38px;
+                height: 38px;
+                font-size: 0.7rem;
+            }
+
+            .number-item[data-value="1"],
+            .number-item[data-value="2"],
+            .number-item[data-value="3"] {
+                width: 32px;
+                height: 32px;
+                font-size: 0.6rem;
+            }
+
+            .close-btn {
+                width: 40px;
+                height: 40px;
+                font-size: 1.4rem;
+                top: -10px;
+                right: 5px;
+            }
+
+            .trigger-btn {
+                padding: 0.8rem 2rem;
+                font-size: 1.1rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .pot-wrapper {
+                width: 300px;
+                height: 300px;
+            }
+
+            .number-item {
+                width: 30px;
+                height: 30px;
+                font-size: 0.55rem;
+            }
+
+            .number-item[data-value="1"],
+            .number-item[data-value="2"],
+            .number-item[data-value="3"] {
+                width: 26px;
+                height: 26px;
+                font-size: 0.5rem;
+            }
+
+            .close-btn {
+                width: 36px;
+                height: 36px;
+                font-size: 1.2rem;
+                top: -8px;
+                right: 2px;
+            }
+
+            .trigger-btn {
+                padding: 0.6rem 1.5rem;
+                font-size: 0.9rem;
+            }
+
+            .modal-card {
+                padding: 0.5rem;
+            }
+        }
+
+        .bonus-playing {
+            display: inline-block;
+            animation: bonusPulse 0.5s ease-in-out infinite;
+        }
+
+        @keyframes bonusPulse {
+
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.5;
+                transform: scale(1.1);
+            }
+        }
+
+        /* Report Modal Styles */
+        .report-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(8px);
+            z-index: 3000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .report-modal-content {
+            background: white;
+            border-radius: 20px;
+            width: 95%;
+            max-width: 1400px;
+            max-height: 90vh;
+            overflow: hidden;
+            animation: modalSlideIn 0.3s ease;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+        }
+
+        .report-modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: white;
+        }
+
+        .report-modal-header h3 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        .report-modal-close {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .report-modal-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: rotate(90deg);
+        }
+
+        .report-modal-body {
+            padding: 25px;
+            max-height: calc(90vh - 80px);
+            overflow-y: auto;
+        }
+
+        /* Agent Summary Cards */
+        .agent-summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .agent-summary-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .agent-summary-card i {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .agent-summary-value {
+            font-size: 18px;
+            font-weight: bold;
+            margin: 5px 0;
+        }
+
+        .agent-summary-label {
+            font-size: 11px;
+            opacity: 0.9;
+        }
+
+        /* Summary Cards */
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .summary-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        .summary-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .summary-card i {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .summary-value {
+            font-size: 28px;
+            font-weight: bold;
+            margin: 5px 0;
+        }
+
+        .summary-label {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        /* Reports Table */
+        .reports-table-container {
+            overflow-x: auto;
+            margin-top: 10px;
+        }
+
+        .reports-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .reports-table th,
+        .reports-table td {
+            padding: 10px 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+            font-size: 13px;
+        }
+
+        .reports-table th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: 600;
+        }
+
+        .reports-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .text-success {
+            color: #28a745;
+            font-weight: 600;
+        }
+
+        .text-warning {
+            color: #ffc107;
+            font-weight: 600;
+        }
+
+        .badge-jackpot {
+            background: linear-gradient(135deg, #ff0844, #ffb199);
+            color: white;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .badge-normal {
+            background: #6c757d;
+            color: white;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+        }
+
+        /* Report Filter Buttons */
+        .report-filters {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .report-filter-btn {
+            padding: 8px 20px;
+            border: none;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #e9ecef;
+            color: #495057;
+        }
+
+        .report-filter-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .report-filter-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .report-filter-btn.today {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+        }
+
+        .report-filter-btn.yesterday {
+            background: linear-gradient(135deg, #ffc107 0%, #f39c12 100%);
+            color: #333;
+        }
+
+        .report-filter-btn.daybefore {
+            background: linear-gradient(135deg, #17a2b8 0%, #0d6efd 100%);
+            color: white;
+        }
+
+        .report-filter-btn.all {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Login Page -->
+    <div class="login-overlay" id="loginOverlay">
+        <div class="login-container">
+            <div class="text-center mb-4">
+                <i class="fas fa-dice-d6 fa-4x" style="color: #667eea;"></i>
+                <h2 class="mt-3">Agent Portal</h2>
+            </div>
+
+            <div id="loginForm">
+                <div class="mb-3">
+                    <label class="form-label">Agent ID</label>
+                    <input type="text" id="loginAgentId" class="form-control" placeholder="Enter Agent ID">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Password</label>
+                    <input type="password" id="loginPassword" class="form-control" placeholder="Enter Password">
+                </div>
+                <button class="btn btn-primary w-100 mb-2" onclick="loginUser()">
+                    <i class="fas fa-sign-in-alt"></i> Login
+                </button>
+                <button class="btn btn-secondary w-100" onclick="showRegisterForm()">
+                    <i class="fas fa-user-plus"></i> Create New Account
+                </button>
+            </div>
+
+            <div id="registerForm" style="display: none;">
+                <div class="mb-3">
+                    <label class="form-label">Full Name</label>
+                    <input type="text" id="regName" class="form-control" placeholder="Enter your full name">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Phone Number</label>
+                    <input type="tel" id="regPhone" class="form-control" placeholder="Enter phone number">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Password</label>
+                    <input type="password" id="regPassword" class="form-control" placeholder="Create password">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Confirm Password</label>
+                    <input type="password" id="regConfirmPassword" class="form-control" placeholder="Confirm password">
+                </div>
+                <button class="btn btn-success w-100 mb-2" onclick="registerUser()">
+                    <i class="fas fa-check-circle"></i> Register
+                </button>
+                <button class="btn btn-secondary w-100" onclick="showLoginForm()">
+                    <i class="fas fa-arrow-left"></i> Back to Login
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Check Card Modal -->
+    <div class="check-card-modal-new" id="checkCardModalNew">
+        <div class="check-card-content-new">
+            <div class="check-card-header-new">
+                <h3><i class="fas fa-search"></i> Check Bingo Card</h3>
+                <button class="check-card-close-new" onclick="closeCheckCardModalNew()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="check-card-body-new" id="checkCardBodyNew">
+                <div class="card-number-input-area">
+                    <input type="number" id="cardNumberInput" placeholder="Card Number (1-100)" min="1" max="100">
+                    <button onclick="loadAndCheckCard()"><i class="fas fa-search"></i> Check Card</button>
+                </div>
+                <div id="cardDisplayArea">
+                    <div class="empty-card-message">
+                        <i class="fas fa-credit-card fa-4x"></i>
+                        <p style="margin-top: 15px;">Enter a card number and click Check Card</p>
+                        <p style="font-size: 13px; margin-top: 8px;">Cards 1-100 available</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card-check-modal" id="cardCheckModal">
+        <div class="card-check-content">
+            <div class="card-check-header">
+                <h3><i class="fas fa-search"></i> Card Details</h3>
+                <button class="card-check-close" onclick="closeCardCheckModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="card-check-body" id="cardCheckBody"></div>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div class="main-app" id="mainApp">
+        <div class="top-navbar">
+            <div class="logo-area">
+
+                <button class="theme-btn" onclick="toggleTheme()">
+                    <i class="fas fa-moon"></i> Theme
+                </button>
+                <button class="dropdown-btn" id="openModalBtn">
+                    Shuffle
+                </button>
+                <span class="draw-delay-badge" id="jokerStatusBadge"
+                    style="display:none; background: linear-gradient(135deg, #ffd700, #ff6b6b); color: white;">
+                    <i class="fas fa-star"></i> Joker Ready!
+                </span>
+            </div>
+            <div class="right-controls">
+                <button class="fullscreen-btn" onclick="toggleFullScreen()">
+                    <i class="fas fa-expand"></i> Fullscreen
+                </button>
+                <button class="fullscreen-btn" id="resetBtn" onclick="resetGame()">
+                    <i class="fas fa-home"></i> New Game
+                </button>
+                <button class="reset-btn" id="new game" onclick="newGame()">
+                    <i class="fas fa-undo-alt"></i> Reset
+                </button>
+                <div class="dropdown">
+                    <button class="dropdown-btn" onclick="toggleDropdown()">
+                        <i class="fas fa-user-circle"></i> Menu <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="dropdown-content" id="dropdownMenu">
+                        <div class="dropdown-item">
+                            <span class="dropdown-label"><i class="fas fa-id-card"></i> Agent ID</span>
+                            <span class="dropdown-value" id="agentIdDisplay">-</span>
+                        </div>
+                        <div class="dropdown-item">
+                            <span class="dropdown-label"><i class="fas fa-chart-line"></i> Revenue</span>
+                            <span class="dropdown-value" id="revenueDisplay">0 ETB</span>
+                        </div>
+                        <div class="dropdown-item">
+                            <span class="dropdown-label"><i class="fas fa-coins"></i> Net Revenue</span>
+                            <span class="dropdown-value" id="netRevenueDisplay">0 ETB</span>
+                        </div>
+                        <div class="dropdown-item">
+                            <span class="dropdown-label"><i class="fas fa-trophy"></i> Jackpot</span>
+                            <span class="dropdown-value" id="jackpotDisplay">0 ETB</span>
+                        </div>
+                        <div class="dropdown-item">
+                            <span class="dropdown-label"><i class="fas fa-border-all"></i> Cards</span>
+                            <span class="dropdown-value" id="selectedCardsDisplay">0</span>
+                        </div>
+                        <div class="dropdown-item">
+                            <span class="dropdown-label"><i class="fas fa-star"></i> Joker</span>
+                            <span class="dropdown-value" id="jokerDisplay">Not Drawn</span>
+                        </div>
+                        <div class="dropdown-divider"></div>
+                        <div class="dropdown-item" onclick="loadReports()" style="cursor: pointer;">
+                            <span class="dropdown-label"><i class="fas fa-file-alt"></i> View Reports</span>
+                            <i class="fas fa-chevron-right"></i>
+                        </div>
+                        <div class="dropdown-divider"></div>
+                        <div class="dropdown-item" onclick="logout()" style="cursor: pointer;">
+                            <span class="dropdown-label"><i class="fas fa-sign-out-alt"></i> Logout</span>
+                            <i class="fas fa-chevron-right"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls-sidebar" id="controlsSidebar">
+            <div class="control-group">
+                <div class="control-title">Game Controls</div>
+                <button class="control-btn btn-start" id="startBtn" onclick="startGame()">
+                    <i class="fas fa-play"></i> Start Game
+                </button>
+                <button class="control-btn btn-pause" id="pauseBtn" onclick="togglePausePlay()" disabled>
+                    <i class="fas fa-pause"></i> Pause
+                </button>
+            </div>
+
+            <div class="big-check-btn" id="bigCheckBtn" onclick="showCheckCardDialogNew()">
+                CHECK CARD
+            </div>
+
+            <div class="prize-section-sidebar">
+                <div class="prize-circle-modern" id="currentPrizeCardModern">
+                    <div class="prize-icon">🏆</div>
+                    <div class="prize-label-modern">Current Prize</div>
+                    <div class="prize-value-modern" id="currentPrizeAmount">0</div>
+                    <div class="prize-sub-modern">ETB</div>
+                    <div class="jackpot-badge-modern" id="jackpotRoundBadge" style="display: none;">🔥 JACKPOT!</div>
+                </div>
+                <div class="prize-circle-modern jackpot-modern" id="jackpotCardModern">
+                    <div class="prize-icon">💰</div>
+                    <div class="prize-label-modern">Jackpot Pool</div>
+                    <div class="prize-value-modern" id="accumulatedJackpot">0</div>
+                    <div class="prize-sub-modern">Min: <span id="jackpotMinLimit">1000</span> ETB</div>
+                </div>
+            </div>
+        </div>
+
+        <button class="sidebar-toggle-btn" id="sidebarToggle" onclick="toggleSidebar()">
+            <i class="fas fa-chevron-left"></i>
+        </button>
+
+        <button class="select-cards-btn" onclick="openCardModal()">
+            <i class="fas fa-border-all"></i>
+        </button>
+
+        <div class="card-modal" id="cardModal">
+            <div class="card-modal-content">
+                <div class="card-modal-header">
+                    <h3><i class="fas fa-border-all"></i> Select Bingo Cards</h3>
+                    <button class="modal-close" onclick="closeCardModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="card-modal-body">
+                    <div class="card-selection-stats">
+                        <span>Choose cards for the game (1-100)</span>
+                        <span class="selected-badge">
+                            <i class="fas fa-check-circle"></i> Selected: <span id="modalSelectedCount">0</span>
+                        </span>
+                    </div>
+                    <div class="card-grid-modal" id="cardGridModal"></div>
+                    <div class="modal-actions">
+                        <button class="btn-modal btn-modal-secondary" onclick="closeCardModal()">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                        <button class="btn-modal btn-modal-primary" onclick="confirmCardSelection()">
+                            <i class="fas fa-check-circle"></i> Confirm Selection (<span id="confirmCount">0</span>
+                            cards)
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content-area" id="mainContent">
+            <div class="last-call-container">
+                <div class="last-call-circle" id="lastCallCircle">
+                    <div class="last-call-label">LAST CALL</div>
+                    <div class="last-call-number" id="lastCallNumber">0</div>
+                    <div class="last-call-letter" id="lastCallLetter">B</div>
+                </div>
+            </div>
+
+            <div class="draw-strip-container">
+                <div class="draw-strip-title">📜 DRAW HISTORY</div>
+                <div class="draw-strip" id="drawStrip">
+                    <span class="text-muted">Waiting for game...</span>
+                </div>
+            </div>
+
+            <div class="bingo-board-smart">
+                <div class="smart-bingo-grid" id="smartBingoGrid"></div>
+            </div>
+        </div>
+    </div>
+    <!-- MODAL OVERLAY - Place this near the end of your body -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-card">
+            <!-- Close Button -->
+            <button class="close-btn" id="closeModalBtn">✕</button>
+
+            <!-- POT with numbers -->
+            <div class="pot-wrapper">
+                <div class="pot" id="pot">
+                    <div class="number-grid" id="numberGrid"></div>
+                </div>
+            </div>
+
+
+        </div>
+    </div>
+    <audio id="audioPlayer"></audio>
+    <audio id="bonusAudioPlayer" loop>
+        <source src="/audio/bonus.mp3" type="audio/mpeg">
+    </audio>
+    <script>
+        let socket;
+        let winnerDeclared = false;
+        let currentSession = null;
+        let selectedCards = [];
+        let gameActive = false;
+        let gamePaused = false;
+        let drawnNumbers = [];
+        let agentId = null;
+        let agentToken = null; // signed login token issued by the server (proves who this agent is)
+        let currentGameId = null;
+        let currentPrizePool = 0;
+        let accumulatedJackpot = 0;
+        let jackpotMinLimit = 1000;
+        let lastWinnerAmount = 0;
+        let isJackpotRound = false;
+        let lastJackpotValue = 0;
+        let isCheckingCard = false;
+        let currentLoadedCardData = null;
+        let currentLoadedCardNumber = null;
+        let cardBlocked = new Map();
+
+        // Joker related variables
+        let jokerColumn = null;
+        let jokerDrawn = false;
+
+        let pendingWinner = false;
+        let pendingWinnerCardNumber = null;
+        let pendingWinnerAmount = 0;
+
+        // Report filter variable
+        let currentReportFilter = 'all';
+
+        // Bonus audio control
+        let bonusAudioInterval = null;
+        let isBonusPlaying = false;
+
+        function startBonusAudio() {
+            const audio = document.getElementById('bonusAudioPlayer');
+            if (audio) {
+                audio.loop = true;
+                audio.volume = 0.7;
+                audio.play().catch(e => console.log('Bonus audio error:', e));
+                isBonusPlaying = true;
+                console.log('🔊 Bonus audio started (pre-game lobby)');
+
+                // Show visual indicator
+                const badge = document.getElementById('bonusStatusBadge');
+                if (badge) {
+                    badge.style.display = 'inline-block';
+                    badge.className = 'draw-delay-badge bonus-playing';
+                    badge.innerHTML = '<i class="fas fa-music"></i> 🎰 JACKPOT LOBBY';
+                }
+            }
+        }
+
+        function stopBonusAudio() {
+            const audio = document.getElementById('bonusAudioPlayer');
+            if (audio) {
+                audio.pause();
+                audio.currentTime = 0;
+                isBonusPlaying = false;
+                console.log('🔊 Bonus audio stopped (game started)');
+
+                // Hide visual indicator
+                const badge = document.getElementById('bonusStatusBadge');
+                if (badge) {
+                    badge.style.display = 'none';
+                }
+            }
+        }
+
+        function toggleBonusAudio() {
+            if (isBonusPlaying) {
+                stopBonusAudio();
+            } else {
+                startBonusAudio();
+            }
+        }
+        const bingoRows = {
+            'B': { numbers: Array.from({ length: 15 }, (_, i) => i + 1) },
+            'I': { numbers: Array.from({ length: 15 }, (_, i) => i + 16) },
+            'N': { numbers: Array.from({ length: 15 }, (_, i) => i + 31) },
+            'G': { numbers: Array.from({ length: 15 }, (_, i) => i + 46) },
+            'O': { numbers: Array.from({ length: 15 }, (_, i) => i + 61) }
+        };
+
+        // Theme switching functionality
+        function toggleTheme() {
+            const body = document.body;
+            const themeBtn = document.querySelector('.theme-btn i');
+
+            if (body.classList.contains('dark-theme')) {
+                body.classList.remove('dark-theme');
+                body.classList.add('light-theme');
+                themeBtn.className = 'fas fa-sun';
+                localStorage.setItem('bingoTheme', 'light');
+                console.log('🌞 Switched to Light Theme');
+            } else if (body.classList.contains('light-theme')) {
+                body.classList.remove('light-theme');
+                body.classList.add('dark-theme');
+                themeBtn.className = 'fas fa-moon';
+                localStorage.setItem('bingoTheme', 'dark');
+                console.log('🌙 Switched to Dark Theme');
+            } else {
+                body.classList.add('dark-theme');
+                themeBtn.className = 'fas fa-moon';
+                localStorage.setItem('bingoTheme', 'dark');
+                console.log('🌙 Switched to Dark Theme');
+            }
+        }
+
+        function loadSavedTheme() {
+            const savedTheme = localStorage.getItem('bingoTheme');
+            const body = document.body;
+            const themeBtn = document.querySelector('.theme-btn i');
+
+            if (savedTheme === 'light') {
+                body.classList.add('light-theme');
+                body.classList.remove('dark-theme');
+                if (themeBtn) themeBtn.className = 'fas fa-sun';
+            } else if (savedTheme === 'dark') {
+                body.classList.add('dark-theme');
+                body.classList.remove('light-theme');
+                if (themeBtn) themeBtn.className = 'fas fa-moon';
+            } else {
+                body.classList.add('dark-theme');
+                if (themeBtn) themeBtn.className = 'fas fa-moon';
+                localStorage.setItem('bingoTheme', 'dark');
+            }
+            console.log('🎨 Theme loaded:', localStorage.getItem('bingoTheme'));
+        }
+
+        // Joker handling functions
+        function handleJokerDraw(data) {
+            console.log(`🃏 JOKER DRAWN: ${data.column}`);
+
+            jokerColumn = data.column;
+            jokerDrawn = true;
+
+            // Update joker display in menu
+            document.getElementById('jokerDisplay').textContent = `${data.column} Joker ✓`;
+            document.getElementById('jokerDisplay').style.color = '#ffd700';
+
+            // Show joker badge in navbar
+            const badge = document.getElementById('jokerStatusBadge');
+            badge.style.display = 'inline-block';
+            badge.innerHTML = `<i class="fas fa-star"></i> ${data.column}-JOKER`;
+
+            // Update last call with joker info
+            document.getElementById('lastCallNumber').textContent = '🃏';
+            document.getElementById('lastCallLetter').textContent = data.column;
+            document.getElementById('lastCallCircle').classList.add('joker-active');
+
+            // Add joker to draw strip with special styling
+            addToDrawStrip({
+                numberText: `🃏 ${data.column}_JOKER`,
+                letter: data.column,
+                number: 0,
+                isJoker: true
+            });
+
+            // Highlight the joker column on the bingo board
+            highlightJokerColumn(data.column);
+
+            // Play the specific joker audio file based on column
+            playJokerSound(data.column);
+        }
+
+        // Play joker sound based on column
+        function playJokerSound(column) {
+            const audio = document.getElementById('audioPlayer');
+            const fileName = `${column.toLowerCase()}_joker.wav`;
+            audio.src = `/audio/${fileName}`;
+            audio.play().catch(e => console.log('Joker audio error:', e));
+        }
+
+        function highlightJokerColumn(column) {
+            // Remove previous highlights
+            document.querySelectorAll('.joker-column-highlight').forEach(el => {
+                el.classList.remove('joker-column-highlight');
+            });
+
+            // Highlight the column letter in the bingo board
+            const rowLetters = document.querySelectorAll('.row-letter');
+            rowLetters.forEach(letterDiv => {
+                if (letterDiv.textContent === column) {
+                    letterDiv.classList.add('joker-column-highlight');
+                }
+            });
+        }
+
+        function clearJokerHighlights() {
+            document.querySelectorAll('.joker-column-highlight').forEach(el => {
+                el.classList.remove('joker-column-highlight');
+            });
+            document.getElementById('lastCallCircle').classList.remove('joker-active');
+            document.getElementById('jokerStatusBadge').style.display = 'none';
+        }
+
+        function showRegisterForm() {
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('registerForm').style.display = 'block';
+        }
+
+        function showLoginForm() {
+            document.getElementById('registerForm').style.display = 'none';
+            document.getElementById('loginForm').style.display = 'block';
+        }
+
+        async function registerUser() {
+            const name = document.getElementById('regName').value.trim();
+            const phone = document.getElementById('regPhone').value.trim();
+            const password = document.getElementById('regPassword').value;
+            const confirmPassword = document.getElementById('regConfirmPassword').value;
+
+            if (!name || !phone || !password) {
+                Swal.fire('Error', 'Please fill all fields', 'error');
+                return;
+            }
+
+            if (password !== confirmPassword) {
+                Swal.fire('Error', 'Passwords do not match', 'error');
+                return;
+            }
+
+            if (password.length < 6) {
+                Swal.fire('Error', 'Password must be at least 6 characters', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/agent/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ agentName: name, phoneNumber: phone, password: password })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Account Created!',
+                        html: `Your Agent ID: <strong>${result.agentId}</strong><br>Please save this ID for future logins.`,
+                        confirmButtonText: 'OK'
+                    }).then(() => {
+                        document.getElementById('loginAgentId').value = result.agentId;
+                        document.getElementById('loginPassword').value = password;
+                        showLoginForm();
+                    });
+                } else {
+                    Swal.fire('Error', result.error || 'Registration failed', 'error');
+                }
+            } catch (error) {
+                console.error('Registration error:', error);
+                Swal.fire('Error', 'Could not create account', 'error');
+            }
+        }
+
+        async function loginUser() {
+            const agentIdInput = document.getElementById('loginAgentId').value.trim();
+            const password = document.getElementById('loginPassword').value;
+
+            if (!agentIdInput || !password) {
+                Swal.fire('Error', 'Please enter Agent ID and Password', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/agent/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ agentId: agentIdInput, password: password })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    agentId = result.agent.agent_id;
+                    agentToken = result.token;
+                    document.getElementById('agentIdDisplay').textContent = agentId;
+                    document.getElementById('loginOverlay').style.display = 'none';
+                    document.getElementById('mainApp').style.display = 'block';
+
+                    // Show this agent's own jackpot immediately from the login response
+                    // (loadJackpotFromServer() below will re-confirm it from the server).
+                    if (result.jackpotAmount !== undefined) {
+                        accumulatedJackpot = parseFloat(result.jackpotAmount) || 0;
+                    }
+
+                    socket = io();
+                    setupSocketListeners();
+                    // Authenticate this socket as THIS agent (token proves it) so the server
+                    // gives it its own private game + jackpot.
+                    socket.emit('agent_login', { agentId: agentId, token: agentToken });
+                    socket.once('agent_logged_in', () => {
+                        createGameSession();
+                        loadJackpotFromServer();
+                        loadAgentStats();
+                        loadConfig();
+                    });
+                    saveSessionToStorage(agentId, null, selectedCards);
+                } else {
+                    Swal.fire('Login Failed', result.error || 'Invalid Agent ID or Password', 'error');
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                Swal.fire('Error', 'Login failed. Please try again.', 'error');
+            }
+        }
+
+        // Every agent-only REST call carries the login token. If the server says the
+        // session is invalid/expired (401) the agent is sent back to the login screen.
+        let authExpiredShown = false;
+        async function authFetch(url, options = {}) {
+            const headers = Object.assign({}, options.headers || {}, { Authorization: 'Bearer ' + agentToken });
+            const response = await fetch(url, Object.assign({}, options, { headers }));
+            if (response.status === 401) handleAuthExpired();
+            return response;
+        }
+
+        function handleAuthExpired() {
+            if (authExpiredShown) return;
+            authExpiredShown = true;
+            clearSessionFromStorage();
+            Swal.fire({
+                icon: 'warning',
+                title: 'Session expired',
+                text: 'Please log in again.',
+                confirmButtonText: 'Log in',
+                allowOutsideClick: false
+            }).then(() => location.reload());
+        }
+
+        function logout() {
+            stopBonusAudio();
+            clearSessionFromStorage();
+            location.reload();
+        }
+
+        function saveSessionToStorage(agentId, sessionId, selectedCardsArray) {
+            const sessionData = {
+                agentId: agentId,
+                token: agentToken,
+                sessionId: sessionId,
+                selectedCards: selectedCardsArray,
+                timestamp: Date.now()
+            };
+            localStorage.setItem('bingoAgentSession', JSON.stringify(sessionData));
+            console.log('💾 Session saved to storage');
+        }
+
+        function loadSessionFromStorage() {
+            const savedSession = localStorage.getItem('bingoAgentSession');
+            if (savedSession) {
+                try {
+                    const sessionData = JSON.parse(savedSession);
+                    if (Date.now() - sessionData.timestamp < 24 * 60 * 60 * 1000) {
+                        console.log('📀 Session loaded from storage');
+                        return sessionData;
+                    } else {
+                        localStorage.removeItem('bingoAgentSession');
+                        console.log('⏰ Session expired');
+                    }
+                } catch (e) {
+                    console.error('Error loading session:', e);
+                }
+            }
+            return null;
+        }
+
+        function clearSessionFromStorage() {
+            localStorage.removeItem('bingoAgentSession');
+            console.log('🗑️ Session cleared from storage');
+        }
+
+        function restoreSession() {
+            const savedSession = loadSessionFromStorage();
+            if (savedSession && savedSession.agentId && !savedSession.token) {
+                // Session saved by an older version (no login token) - ask for a fresh login.
+                clearSessionFromStorage();
+                return false;
+            }
+            if (savedSession && savedSession.agentId) {
+                agentId = savedSession.agentId;
+                agentToken = savedSession.token;
+                if (savedSession.selectedCards) {
+                    selectedCards = savedSession.selectedCards;
+                }
+                document.getElementById('agentIdDisplay').textContent = agentId;
+                document.getElementById('loginOverlay').style.display = 'none';
+                document.getElementById('mainApp').style.display = 'block';
+
+                socket = io();
+                socket.emit('agent_login', { agentId: agentId, token: agentToken });
+                socket.once('agent_logged_in', (data) => {
+                    if (data && data.jackpotAmount !== undefined) {
+                        accumulatedJackpot = parseFloat(data.jackpotAmount) || 0;
+                    }
+                    loadAgentStats();
+                    loadConfig();
+                    createGameSession();
+                    loadJackpotFromServer();
+
+                    if (savedSession.selectedCards && savedSession.selectedCards.length > 0) {
+                        updateSelectedCardsDisplay();
+                    }
+                });
+                setupSocketListeners();
+                return true;
+            }
+            return false;
+        }
+
+        function updateSelectedCardsDisplay() {
+            document.getElementById('selectedCardsDisplay').textContent = selectedCards.length;
+            document.getElementById('modalSelectedCount').textContent = selectedCards.length;
+            document.getElementById('confirmCount').textContent = selectedCards.length;
+        }
+
+        function toggleFullScreen(full = "Fullscreen", exit = "Exit") {
+            const btn = event.currentTarget;
+            if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+                const docEl = document.documentElement;
+                if (docEl.requestFullscreen) docEl.requestFullscreen();
+                else if (docEl.webkitRequestFullscreen) docEl.webkitRequestFullscreen();
+                btn.innerHTML = '<i class="fas fa-compress"></i>' + exit;
+            } else {
+                if (document.exitFullscreen) document.exitFullscreen();
+                else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+                btn.innerHTML = '<i class="fas fa-expand"></i>' + full;
+            }
+        }
+
+        document.addEventListener('fullscreenchange', () => {
+            const btn = document.querySelector('.fullscreen-btn');
+            if (document.fullscreenElement) btn.innerHTML = '<i class="fas fa-compress"></i> Exit';
+            else btn.innerHTML = '<i class="fas fa-expand"></i> Fullscreen';
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'F11') {
+                e.preventDefault();
+                toggleFullScreen();
+            }
+        });
+
+        function toggleDropdown() {
+            document.getElementById('dropdownMenu').classList.toggle('show');
+        }
+
+        document.addEventListener('click', function (event) {
+            const dropdown = document.querySelector('.dropdown');
+            if (dropdown && !dropdown.contains(event.target)) {
+                document.getElementById('dropdownMenu').classList.remove('show');
+            }
+        });
+
+        async function loadJackpotFromServer() {
+            try {
+                // Jackpot is per-agent now — always ask for THIS agent's jackpot only.
+                if (!agentId) {
+                    console.warn('loadJackpotFromServer called before agentId was set');
+                    return;
+                }
+                const response = await authFetch(`/api/jackpot?agentId=${encodeURIComponent(agentId)}`);
+                const data = await response.json();
+                accumulatedJackpot = parseFloat(data.jackpotAmount) || 0;
+                updatePrizeDisplay();
+                // Start bonus audio if jackpot is ready and game is not active
+                if (accumulatedJackpot >= jackpotMinLimit && !gameActive) {
+                    startBonusAudio();
+                } else {
+                    stopBonusAudio();
+                }
+                console.log(`💰 Jackpot loaded: ${accumulatedJackpot} ETB`);
+            } catch (error) {
+                console.error('Error loading jackpot:', error);
+            }
+        }
+
+        async function loadConfig() {
+            try {
+                const response = await fetch('/api/config');
+                const config = await response.json();
+                jackpotMinLimit = config.jackpot_min_limit || 1000;
+                document.getElementById('jackpotMinLimit').textContent = jackpotMinLimit;
+                // Check if bonus audio should start
+                if (accumulatedJackpot >= jackpotMinLimit && !gameActive) {
+                    startBonusAudio();
+                }
+            } catch (error) {
+                console.error('Error loading config:', error);
+            }
+        }
+
+        function updateButtonStates() {
+            const pauseBtn = document.getElementById('pauseBtn');
+            const startBtn = document.getElementById('startBtn');
+            const resetBtn = document.getElementById('resetBtn');
+            const bigCheckBtn = document.getElementById('bigCheckBtn');
+
+            startBtn.disabled = gameActive;
+            pauseBtn.disabled = !gameActive;
+            resetBtn.disabled = gameActive;
+
+            if (gameActive && !isCheckingCard) {
+                bigCheckBtn.style.opacity = '1';
+                bigCheckBtn.style.pointerEvents = 'auto';
+                bigCheckBtn.disabled = false;
+            } else {
+                bigCheckBtn.style.opacity = '0.5';
+                bigCheckBtn.style.pointerEvents = 'none';
+                bigCheckBtn.disabled = true;
+            }
+        }
+
+        function setupSocketListeners() {
+            socket.on('auth_error', () => handleAuthExpired());
+
+            socket.on('session_created', (data) => {
+                stopBonusAudio();
+                currentSession = data.sessionId;
+                currentGameId = data.gameId;
+                loadCardsInModal();
+                cardBlocked.clear();
+                // Reset joker state
+                jokerColumn = null;
+                jokerDrawn = false;
+                document.getElementById('jokerDisplay').textContent = 'Not Drawn';
+                document.getElementById('jokerDisplay').style.color = '';
+                clearJokerHighlights();
+            });
+
+            socket.on('game_started', (data) => {
+                stopBonusAudio();
+                gameActive = true;
+                gamePaused = false;
+                isCheckingCard = false;
+                currentPrizePool = parseFloat(data.prizePool) || 0;
+                if (data.jackpot !== undefined) {
+                    accumulatedJackpot = parseFloat(data.jackpot) || 0;
+                }
+                updatePrizeDisplay();
+                updateButtonStates();
+                playSound('message_4.wav');
+                cardBlocked.clear();
+                // Reset joker state for new game
+                jokerColumn = null;
+                jokerDrawn = false;
+                document.getElementById('jokerDisplay').textContent = 'Not Drawn';
+                document.getElementById('jokerDisplay').style.color = '';
+                clearJokerHighlights();
+            });
+
+            socket.on('number_drawn', (data) => {
+                addToDrawStrip(data);
+                markNumberOnBoard(data);
+                playNumberSound(data);
+                updateLastCall(data);
+                drawnNumbers.push(data.number);
+                if (currentLoadedCardNumber) {
+                    refreshCurrentCard();
+                }
+            });
+
+            // Joker draw event - NO SWEETALERT
+            socket.on('joker_drawn', (data) => {
+                console.log('🃏 Joker drawn event received:', data);
+                handleJokerDraw(data);
+                // Also refresh current card if open
+                if (currentLoadedCardNumber) {
+                    refreshCurrentCard();
+                }
+            });
+
+            socket.on('potential_winners', (data) => {
+                // Handled server-side
+            });
+
+            socket.on('winner_timeout', (data) => {
+                // Handled server-side
+            });
+
+            socket.on('pattern_missed', (data) => {
+                if (currentLoadedCardNumber === data.card) {
+                    refreshCurrentCard();
+                }
+            });
+
+            socket.on('winner_found', (data) => {
+                gameActive = false;
+                isCheckingCard = false;
+                lastWinnerAmount = parseFloat(data.prizeAmount) || 0;
+                updatePrizeDisplay();
+                updateButtonStates();
+                playSound('message_2.wav');
+                addToDrawStrip({ numberText: `🏆 WINNER! Card ${data.cardNumber} won ${data.prizeAmount} ETB`, letter: '', number: 0 });
+                loadJackpotFromServer();
+
+                pendingWinner = false;
+                pendingWinnerCardNumber = null;
+                pendingWinnerAmount = 0;
+            });
+
+            socket.on('game_ended', (data) => {
+                gameActive = false;
+                gamePaused = false;
+                isCheckingCard = false;
+                updateButtonStates();
+
+                pendingWinner = false;
+                pendingWinnerCardNumber = null;
+                pendingWinnerAmount = 0;
+
+                // Update joker info from server
+                if (data.jokerColumn) {
+                    jokerColumn = data.jokerColumn;
+                    jokerDrawn = data.jokerDrawn || false;
+                    if (jokerDrawn) {
+                        document.getElementById('jokerDisplay').textContent = `${jokerColumn} Joker ✓`;
+                        document.getElementById('jokerDisplay').style.color = '#ffd700';
+                    }
+                }
+
+                if (data.jackpot !== undefined) {
+                    accumulatedJackpot = parseFloat(data.jackpot) || 0;
+                } else if (data.jackpotContribution) {
+                    accumulatedJackpot += parseFloat(data.jackpotContribution) || 0;
+                }
+
+                updatePrizeDisplay();
+
+                if (accumulatedJackpot >= jackpotMinLimit) {
+                    startBonusAudio();
+                    isJackpotRound = true;
+                    document.getElementById('jackpotRoundBadge').style.display = 'inline-block';
+                    addToDrawStrip({ numberText: `🔥 JACKPOT ROUND! ${accumulatedJackpot} ETB added to prize!`, letter: '', number: 0 });
+                } else {
+                    isJackpotRound = false;
+                    document.getElementById('jackpotRoundBadge').style.display = 'none';
+                }
+
+                loadAgentStats();
+                loadJackpotFromServer();
+                addToDrawStrip({ numberText: `📊 Game ended. Jackpot: ${accumulatedJackpot} ETB`, letter: '', number: 0 });
+                if (data.netRevenue !== undefined) {
+                    const net = parseFloat(data.netRevenue) || 0;
+                    const paid = parseFloat(data.jackpotPaid) || 0;
+                    const earned = parseFloat(data.agentCommission) || 0;
+                    addToDrawStrip({
+                        numberText: data.isJackpotRound
+                            ? `💵 Jackpot round: earned ${earned.toFixed(2)} − jackpot paid ${paid.toFixed(2)} = NET REVENUE ${net.toFixed(2)} ETB`
+                            : `💵 Net revenue: ${net.toFixed(2)} ETB`,
+                        letter: '', number: 0
+                    });
+                }
+                cardBlocked.clear();
+            });
+
+            socket.on('game_paused', () => {
+                gamePaused = true;
+                document.getElementById('pauseBtn').innerHTML = '<i class="fas fa-play"></i> Play';
+                updateButtonStates();
+            });
+
+            socket.on('game_resumed', () => {
+                gamePaused = false;
+                document.getElementById('pauseBtn').innerHTML = '<i class="fas fa-pause"></i> Pause';
+                updateButtonStates();
+            });
+
+            socket.on('game_reset', () => {
+                if (accumulatedJackpot >= jackpotMinLimit) {
+                    startBonusAudio();
+                }
+                gameActive = false;
+                gamePaused = false;
+                isCheckingCard = false;
+                drawnNumbers = [];
+                document.getElementById('selectedCardsDisplay').textContent = selectedCards.length;
+                updateButtonStates();
+                resetBingoBoard();
+                document.getElementById('drawStrip').innerHTML = '<span class="text-muted">Waiting for game...</span>';
+                document.getElementById('lastCallNumber').textContent = '0';
+                document.getElementById('lastCallLetter').textContent = 'B';
+                currentPrizePool = 0;
+                updatePrizeDisplay();
+                addToDrawStrip({ numberText: '🔄 Game reset', letter: '', number: 0 });
+                loadCardsInModal();
+                loadJackpotFromServer();
+                cardBlocked.clear();
+                // Reset joker
+                jokerColumn = null;
+                jokerDrawn = false;
+                document.getElementById('jokerDisplay').textContent = 'Not Drawn';
+                document.getElementById('jokerDisplay').style.color = '';
+                clearJokerHighlights();
+            });
+
+            socket.on('check_result', (data) => {
+                console.log('📞 Check result received:', data);
+                document.getElementById('checkingIndicator').classList.remove('active');
+                isCheckingCard = false;
+                updateButtonStates();
+
+                if (data.sound === 'message_2.wav') {
+                    playSound('message_2.wav');
+                } else if (data.sound === 'message_5.wav') {
+                    playSound('message_5.wav');
+                } else if (data.sound === 'notreg') {
+                    playSound('notreg');
+                } else if (data.sound === 'passed') {
+                    playSound('passed');
+                }
+
+                if (data.isMissed) {
+                    document.getElementById('cardDisplayArea').innerHTML = `
+                        <div class="error-message-card">
+                            <i class="fas fa-clock fa-4x"></i>
+                            <p style="margin-top: 10px; font-size: 16px; font-weight: bold;">Pattern Missed!</p>
+                            <p style="margin-top: 8px; font-size: 13px;">${data.message}</p>
+                        </div>
+                    `;
+                    playSound('message_1.wav');
+                    winnerDeclared = false;
+                    pendingWinner = false;
+                } else if (data.success) {
+                    const prizeAmountNum = typeof data.prizeAmount === 'string' ? parseFloat(data.prizeAmount) : data.prizeAmount;
+                    document.getElementById('cardDisplayArea').innerHTML = `
+                        <div class="winner-result-message winner">
+                            <i class="fas fa-trophy fa-2x"></i> 
+                            WINNER! Prize: ${prizeAmountNum.toFixed(2)} ETB
+                            <i class="fas fa-trophy fa-2x"></i>
+                        </div>
+                    `;
+                    if (data.cardDetails && data.cardDetails.cardData) {
+                        renderCardBoard(data.cardDetails.cardData, data.cardDetails.cardNumber);
+                    }
+
+                    pendingWinner = true;
+                    pendingWinnerCardNumber = data.cardNumber;
+                    pendingWinnerAmount = prizeAmountNum;
+                    winnerDeclared = true;
+
+                    console.log(`🏆 WINNER SET: Card ${pendingWinnerCardNumber}, Amount: ${pendingWinnerAmount}`);
+                } else if (data.sound === 'notreg') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Card Not Registered!',
+                        text: `Card #${data.cardNumber} is not registered for this game. Please select cards before starting the game.`,
+                        confirmButtonText: 'OK'
+                    });
+                    winnerDeclared = false;
+                    pendingWinner = false;
+                    if (gameActive && gamePaused) {
+                        socket.emit('resume_game');
+                        gamePaused = false;
+                        document.getElementById('pauseBtn').innerHTML = '<i class="fas fa-pause"></i> Pause';
+                        updateButtonStates();
+                    }
+                    closeCheckCardModalNew();
+                } else {
+                    document.getElementById('cardDisplayArea').innerHTML = `
+                        <div class="winner-result-message loser">
+                            <i class="fas fa-times-circle fa-2x"></i> 
+                            ${data.message || 'Not a winner'}
+                        </div>
+                    `;
+                    winnerDeclared = false;
+                    pendingWinner = false;
+                }
+            });
+
+            socket.on('play_audio', (data) => {
+                if (data.sound) {
+                    playSound(data.sound);
+                }
+            });
+        }
+
+        async function refreshCurrentCard() {
+            if (currentLoadedCardNumber && !cardBlocked.has(currentLoadedCardNumber)) {
+                try {
+                    const response = await fetch(`/api/card/${currentLoadedCardNumber}`);
+                    const cardData = await response.json();
+                    if (cardData) {
+                        renderCardBoard(cardData, currentLoadedCardNumber);
+                    }
+                } catch (error) {
+                    console.error('Error refreshing card:', error);
+                }
+            }
+        }
+
+        async function loadAndCheckCard() {
+            console.log('🔔 LOAD AND CHECK CARD CALLED');
+
+            const cardNumber = parseInt(document.getElementById('cardNumberInput').value);
+            console.log(`📞 Card number entered: ${cardNumber}`);
+
+            if (!cardNumber || cardNumber < 1 || cardNumber > 100) {
+                Swal.fire('Error', 'Please enter a valid card number (1-100)', 'error');
+                return;
+            }
+
+            if (cardBlocked.has(cardNumber)) {
+                document.getElementById('cardDisplayArea').innerHTML = `
+            <div class="error-message-card">
+                <i class="fas fa-lock fa-4x"></i>
+                <p style="margin-top: 10px; font-size: 16px; font-weight: bold;">Card Blocked!</p>
+                <p style="margin-top: 8px; font-size: 13px;">Card #${cardNumber} has been blocked for this game round.</p>
+                <p style="margin-top: 5px; font-size: 12px;">This card cannot win any patterns this round.</p>
+            </div>
+        `;
+                playSound('message_1.wav');
+                return;
+            }
+
+            if (!selectedCards.includes(cardNumber)) {
+                document.getElementById('cardDisplayArea').innerHTML = `
+            <div class="error-message-card">
+                <i class="fas fa-ban"></i>
+                <p style="margin-top: 10px; font-size: 16px; font-weight: bold;">Card Not Registered!</p>
+                <p style="margin-top: 8px; font-size: 13px;">Card #${cardNumber} is not selected for this game.</p>
+                <p style="margin-top: 5px; font-size: 12px;">Please go back and select cards before checking.</p>
+            </div>
+        `;
+                playSound('message_5');
+                return;
+            }
+
+            // Set current card number for later refresh
+            currentLoadedCardNumber = cardNumber;
+
+            // Show loading state
+            document.getElementById('cardDisplayArea').innerHTML = `
+        <div class="empty-card-message">
+            <i class="fas fa-spinner fa-spin fa-4x"></i>
+            <p style="margin-top: 15px;">Loading card data...</p>
+        </div>
+    `;
+
+            // Fetch card data first
+            try {
+                const response = await fetch(`/api/card/${cardNumber}`);
+                const cardData = await response.json();
+                if (cardData) {
+                    currentLoadedCardData = cardData;
+                    renderCardBoard(cardData, cardNumber);
+                } else {
+                    document.getElementById('cardDisplayArea').innerHTML = `
+                <div class="error-message-card">
+                    <i class="fas fa-exclamation-circle fa-4x"></i>
+                    <p style="margin-top: 10px; font-size: 16px; font-weight: bold;">Card data not found</p>
+                </div>
+            `;
+                    return;
+                }
+            } catch (error) {
+                console.error('Error loading card:', error);
+                document.getElementById('cardDisplayArea').innerHTML = `
+            <div class="error-message-card">
+                <i class="fas fa-exclamation-triangle fa-4x"></i>
+                <p style="margin-top: 10px; font-size: 16px; font-weight: bold;">Error loading card</p>
+            </div>
+        `;
+                return;
+            }
+
+            // Pause the game for checking
+            if (gameActive && !gamePaused) {
+                console.log('⏸️ Pausing game for card check');
+                socket.emit('pause_game');
+                gamePaused = true;
+                document.getElementById('pauseBtn').innerHTML = '<i class="fas fa-play"></i> Play';
+                updateButtonStates();
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+
+            // Send the check request to server via SOCKET
+            console.log(`📤 Emitting pause_and_check_card for card ${cardNumber}`);
+            socket.emit('pause_and_check_card', { cardNumber: cardNumber });
+        }
+
+        function renderCardBoard(cardData, cardNumber) {
+            const drawnNumbersArray = drawnNumbers || [];
+
+            let gridHtml = '<div class="check-card-board">';
+            gridHtml += '<div class="check-card-title-new">🎴 Card #' + cardNumber + '</div>';
+
+            // Show joker info if drawn
+            if (jokerDrawn && jokerColumn) {
+                gridHtml += `<div class="joker-announcement">🃏 Joker: Column ${jokerColumn}</div>`;
+            }
+
+            gridHtml += '<table class="check-card-table-new">';
+            gridHtml += '<thead><tr><th>B</th><th>I</th><th>N</th><th>G</th><th>O</th></tr></thead><tbody>';
+
+            for (let row = 0; row < 5; row++) {
+                gridHtml += '<tr>';
+                for (let letter of ['B', 'I', 'N', 'G', 'O']) {
+                    let value = cardData[letter][row];
+                    const isNumberDrawn = value !== 'FREE' && drawnNumbersArray.includes(parseInt(value));
+                    // The joker fills ONE cell only; it is shown after the pattern check (below).
+                    let cellClass = '';
+                    if (isNumberDrawn) cellClass = 'marked';
+                    if (value === 'FREE') {
+                        cellClass = 'pattern-highlight';
+                        value = 'FREE';
+                    }
+                    gridHtml += `<td class="${cellClass}" data-l="${letter}" data-r="${row}">${value}</td>`;
+                }
+                gridHtml += '</tr>';
+            }
+            gridHtml += '</tbody></table></div>';
+
+            let patternsHtml = '<div class="patterns-container-new">';
+            patternsHtml += '<div class="patterns-title-new"><i class="fas fa-chart-line"></i> Pattern Status</div>';
+            patternsHtml += '<div class="patterns-grid-new">';
+            patternsHtml += '<div class="pattern-badge-new pending"><span class="pattern-icon">⏳</span> Loading patterns...</div>';
+            patternsHtml += '</div></div>';
+
+            const cardDisplayArea = document.getElementById('cardDisplayArea');
+            if (cardDisplayArea) {
+                cardDisplayArea.innerHTML = gridHtml + patternsHtml;
+            }
+
+            // Fetch patterns after rendering the card
+            fetchCompletedPatterns(cardNumber);
+        }
+        async function fetchCompletedPatterns(cardNumber) {
+            try {
+                // Use the current drawn numbers from the game state
+                const drawnNumbersStr = drawnNumbers.join(',');
+                const url = `/api/card-patterns/${cardNumber}?drawnNumbers=${drawnNumbersStr}`;
+                console.log(`📤 Fetching patterns from: ${url}`);
+
+                const response = await authFetch(url);
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    console.error('❌ Failed to fetch patterns:', errorData);
+                    throw new Error(errorData.error || 'Failed to fetch patterns');
+                }
+
+                const data = await response.json();
+                console.log('📊 Patterns data received:', data);
+
+                const patternsContainer = document.querySelector('#cardDisplayArea .patterns-grid-new');
+
+                if (!patternsContainer) {
+                    console.warn('⚠️ Patterns container not found');
+                    return;
+                }
+
+                if (data.completedPatterns && data.completedPatterns.length > 0) {
+                    let patternsHtml = '';
+                    data.completedPatterns.forEach(pattern => {
+                        // Server decides: joker used only when exactly one cell (in the joker column) is missing
+                        const usesJoker = !!pattern.usesJoker;
+                        if (usesJoker && !pattern.isMissed && pattern.jokerRow !== null && pattern.jokerRow !== undefined) {
+                            const cell = document.querySelector(`#cardDisplayArea td[data-l="${data.jokerColumn}"][data-r="${pattern.jokerRow}"]`);
+                            if (cell) cell.classList.add('marked', 'joker-marked');
+                        }
+                        let patternClass = 'pattern-badge-new';
+                        if (pattern.isMissed) {
+                            patternClass += ' missed';
+                        } else if (usesJoker) {
+                            patternClass += ' joker-pattern';
+                        } else {
+                            patternClass += ' valid';
+                        }
+
+                        const statusIcon = pattern.isMissed ? '❌' : (usesJoker ? '🃏' : '✅');
+                        const statusText = pattern.isMissed ? 'Missed' : (usesJoker ? 'Joker Win!' : 'Valid');
+
+                        patternsHtml += `<div class="${patternClass}">
+                    <span class="pattern-icon">${statusIcon}</span>
+                    <span>${pattern.name}</span>
+                    <small style="font-size: 10px;">(${statusText})</small>
+                </div>`;
+                    });
+                    patternsContainer.innerHTML = patternsHtml;
+                    console.log('✅ Patterns displayed:', patternsHtml);
+                } else {
+                    patternsContainer.innerHTML = '<div class="pattern-badge-new pending"><span class="pattern-icon">⏳</span> No patterns completed yet</div>';
+                    console.log('ℹ️ No completed patterns found');
+                }
+            } catch (error) {
+                console.error('❌ Error fetching patterns:', error);
+                const patternsContainer = document.querySelector('#cardDisplayArea .patterns-grid-new');
+                if (patternsContainer) {
+                    patternsContainer.innerHTML = `<div class="pattern-badge-new pending"><span class="pattern-icon">⚠️</span> Pattern check unavailable: ${error.message}</div>`;
+                }
+            }
+        }
+
+        function showModernCardModal(cardDetails, isWinner, prizeAmount) {
+            const modal = document.getElementById('cardCheckModal');
+            const body = document.getElementById('cardCheckBody');
+
+            let gridHtml = '<div class="check-card-grid">';
+            gridHtml += '<div class="check-card-title">🎴 Card #' + (cardDetails.cardNumber || '?') + '</div>';
+            gridHtml += '<table class="check-card-table">';
+            gridHtml += '<thead><tr><th>B</th><th>I</th><th>N</th><th>G</th><th>O</th></tr></thead><tbody>';
+
+            for (let row = 0; row < 5; row++) {
+                gridHtml += '<tr>';
+                for (let letter of ['B', 'I', 'N', 'G', 'O']) {
+                    let value = cardDetails.cardData[letter][row];
+                    const isMarked = value !== 'FREE' && cardDetails.drawnNumbers.includes(parseInt(value));
+                    let isInPattern = false;
+                    if (cardDetails.recentPattern && cardDetails.recentPattern.positions) {
+                        isInPattern = cardDetails.recentPattern.positions.some(p => p.letter === letter && p.row === row);
+                    }
+                    let cellClass = '';
+                    if (isMarked) cellClass = 'marked';
+                    if (isInPattern) cellClass = 'pattern-highlight';
+                    gridHtml += `<td class="${cellClass}">${value}</td>`;
+                }
+                gridHtml += '</tr>';
+            }
+            gridHtml += '</tbody></table></div>';
+
+            let patternsHtml = '<div class="patterns-container">';
+            patternsHtml += '<div class="patterns-title"><i class="fas fa-chart-line"></i> Winning Patterns</div>';
+            patternsHtml += '<div class="patterns-grid">';
+
+            if (cardDetails.completedPatterns && cardDetails.completedPatterns.length > 0) {
+                cardDetails.completedPatterns.forEach(pattern => {
+                    const statusClass = pattern.isMissed ? 'missed' : 'valid';
+                    const statusIcon = pattern.isMissed ? '❌' : '✅';
+                    const statusText = pattern.isMissed ? 'Missed' : 'Valid';
+                    patternsHtml += `<div class="pattern-badge ${statusClass}"><span class="pattern-icon">${statusIcon}</span><span>${pattern.name}</span><small style="font-size: 10px;">(${statusText})</small></div>`;
+                });
+            } else {
+                patternsHtml += '<div class="pattern-badge pending"><span class="pattern-icon">⏳</span> No patterns yet</div>';
+            }
+            patternsHtml += '</div></div>';
+
+            let winnerHtml = '';
+            if (isWinner && prizeAmount) {
+                winnerHtml = `<div class="winner-prize"><div class="prize-label">🏆 WINNER! 🏆</div><div class="prize-amount">${parseFloat(prizeAmount).toFixed(2)} ETB</div></div>`;
+            }
+
+            body.innerHTML = gridHtml + patternsHtml + winnerHtml;
+            modal.classList.add('active');
+        }
+
+        function closeCardCheckModal() {
+            document.getElementById('cardCheckModal').classList.remove('active');
+            if (gameActive && gamePaused) {
+                socket.emit('resume_game');
+                gamePaused = false;
+                document.getElementById('pauseBtn').innerHTML = '<i class="fas fa-pause"></i> Pause';
+                updateButtonStates();
+            }
+        }
+
+        function showCheckCardDialogNew() {
+            console.log('🔔 CHECK CARD MODAL OPENED');
+
+            pendingWinner = false;
+            pendingWinnerCardNumber = null;
+            pendingWinnerAmount = 0;
+            winnerDeclared = false;
+
+            // Tell the server: no draws at all while this dialog is open.
+            socket.emit('check_dialog_open');
+
+            if (gameActive && !gamePaused) {
+                console.log('⏸️ Pausing game when opening modal');
+                socket.emit('pause_game');
+                gamePaused = true;
+                document.getElementById('pauseBtn').innerHTML = '<i class="fas fa-play"></i> Play';
+                updateButtonStates();
+            }
+
+            const modal = document.getElementById('checkCardModalNew');
+            modal.classList.add('active');
+            document.getElementById('cardNumberInput').value = '';
+            document.getElementById('cardDisplayArea').innerHTML = `
+                <div class="empty-card-message">
+                    <i class="fas fa-credit-card fa-4x"></i>
+                    <p style="margin-top: 15px;">Enter a card number and click Check Card</p>
+                    <p style="font-size: 13px; margin-top: 8px;">Cards 1-100 available</p>
+                    ${jokerDrawn ? `<p style="font-size: 13px; margin-top: 8px; color: #ffd700;">🃏 Joker active: Column ${jokerColumn}</p>` : ''}
+                </div>
+            `;
+            currentLoadedCardData = null;
+            currentLoadedCardNumber = null;
+        }
+
+        function closeCheckCardModalNew() {
+            console.log('🔔 CHECK CARD MODAL CLOSED');
+            console.log(`pendingWinner: ${pendingWinner}, winnerDeclared: ${winnerDeclared}`);
+
+            document.getElementById('checkCardModalNew').classList.remove('active');
+
+            // Tell the server the dialog is closed: draws continue (unless a winner ended the game).
+            socket.emit('check_dialog_closed');
+
+            // Check if there was a winner found
+            if ((pendingWinner || winnerDeclared) && pendingWinnerCardNumber) {
+                console.log(`🏆 WINNER FOUND - Ending game for Card ${pendingWinnerCardNumber}`);
+
+                if (gameActive) {
+                    socket.emit('pause_game');
+                    gameActive = false;
+                    gamePaused = true;
+                }
+
+                if (window.drawInterval) {
+                    clearInterval(window.drawInterval);
+                }
+
+                Swal.fire({
+                    icon: 'success',
+                    title: '🏆 WINNER DECLARED! 🏆',
+                    html: `<div style="font-size: 24px; margin: 10px 0;">Card #${pendingWinnerCardNumber}</div>
+                   <div style="font-size: 32px; color: #ffd700; margin: 10px 0;">Won ${pendingWinnerAmount.toFixed(2)} ETB!</div>
+                   <div style="font-size: 14px; margin-top: 10px;">The game will now reset for a new round.</div>`,
+                    confirmButtonText: 'Start New Game',
+                    confirmButtonColor: '#28a745',
+                    allowOutsideClick: false
+                }).then(() => {
+                    console.log(`📤 Emitting end_game_by_winner for card ${pendingWinnerCardNumber}`);
+                    socket.emit('end_game_by_winner', {
+                        cardNumber: pendingWinnerCardNumber,
+                        prizeAmount: pendingWinnerAmount
+                    });
+
+                    // Reset all game state locally
+                    gameActive = false;
+                    gamePaused = false;
+                    selectedCards = [];
+                    drawnNumbers = [];
+                    cardBlocked.clear();
+                    currentLoadedCardNumber = null;
+                    currentLoadedCardData = null;
+                    currentPrizePool = 0;
+                    isJackpotRound = false;
+
+                    document.getElementById('selectedCardsDisplay').textContent = '0';
+                    document.getElementById('modalSelectedCount').textContent = '0';
+                    document.getElementById('confirmCount').textContent = '0';
+                    document.getElementById('pauseBtn').innerHTML = '<i class="fas fa-pause"></i> Pause';
+                    updateButtonStates();
+
+                    resetBingoBoard();
+
+                    document.getElementById('drawStrip').innerHTML = '<span class="text-muted">Waiting for game...</span>';
+                    document.getElementById('lastCallNumber').textContent = '0';
+                    document.getElementById('lastCallLetter').textContent = 'B';
+
+                    loadJackpotFromServer();
+                    loadCardsInModal();
+
+                    const allCardItems = document.querySelectorAll('.card-item-modal');
+                    allCardItems.forEach(item => {
+                        item.classList.remove('selected');
+                    });
+
+                    saveSessionToStorage(agentId, currentSession, []);
+
+                    addToDrawStrip({ numberText: `🏆 GAME OVER - Winner Card #${pendingWinnerCardNumber} won ${pendingWinnerAmount.toFixed(2)} ETB`, letter: '', number: 0 });
+                    addToDrawStrip({ numberText: '🔄 Game reset. Select cards to start a new game.', letter: '', number: 0 });
+
+                    pendingWinner = false;
+                    pendingWinnerCardNumber = null;
+                    pendingWinnerAmount = 0;
+                    winnerDeclared = false;
+                });
+            } else {
+                // No winner found - resume the game when modal is closed
+                console.log('No winner found - Resuming game on modal close');
+                if (gameActive && gamePaused) {
+                    socket.emit('resume_game');
+                    gamePaused = false;
+                    document.getElementById('pauseBtn').innerHTML = '<i class="fas fa-pause"></i> Pause';
+                    updateButtonStates();
+                    addToDrawStrip({ numberText: '▶️ Game resumed - Card check closed (No winner)', letter: '', number: 0 });
+                }
+            }
+        }
+
+        function updatePrizeDisplay() {
+            console.log(currentPrizePool);
+            let displayPrize = parseFloat(currentPrizePool) || 0;
+            if (isJackpotRound && accumulatedJackpot >= jackpotMinLimit) {
+                displayPrize = displayPrize;
+            }
+            document.getElementById('currentPrizeAmount').textContent = displayPrize.toFixed(2);
+            document.getElementById('accumulatedJackpot').textContent = (parseFloat(accumulatedJackpot) || 0).toFixed(2);
+            document.getElementById('jackpotDisplay').textContent = (parseFloat(accumulatedJackpot) || 0).toFixed(2);
+
+            if (accumulatedJackpot >= jackpotMinLimit) {
+                isJackpotRound = true;
+                document.getElementById('jackpotRoundBadge').style.display = 'inline-block';
+            } else {
+                isJackpotRound = false;
+                document.getElementById('jackpotRoundBadge').style.display = 'none';
+            }
+        }
+
+        function createGameSession() {
+            socket.emit('create_game_session');
+        }
+
+        function loadCardsInModal() {
+            fetch('/api/cards')
+                .then(res => res.json())
+                .then(cards => {
+                    const grid = document.getElementById('cardGridModal');
+                    grid.innerHTML = '';
+                    cards.forEach(card => {
+                        const cardDiv = document.createElement('div');
+                        cardDiv.className = 'card-item-modal';
+                        cardDiv.textContent = card.number;
+                        cardDiv.onclick = () => toggleCardSelectionModal(card.number, cardDiv);
+                        if (selectedCards.includes(card.number)) {
+                            cardDiv.classList.add('selected');
+                        }
+                        grid.appendChild(cardDiv);
+                    });
+                    document.getElementById('modalSelectedCount').textContent = selectedCards.length;
+                    document.getElementById('confirmCount').textContent = selectedCards.length;
+                    document.getElementById('selectedCardsDisplay').textContent = selectedCards.length;
+                });
+        }
+
+        function toggleCardSelectionModal(cardNumber, element) {
+            if (gameActive) {
+                Swal.fire('Game Active', 'Cannot change cards during game', 'warning');
+                return;
+            }
+            const index = selectedCards.indexOf(cardNumber);
+            if (index === -1) {
+                if (selectedCards.length < 100) {
+                    selectedCards.push(cardNumber);
+                    element.classList.add('selected');
+                } else {
+                    Swal.fire('Limit', 'Maximum 100 cards', 'warning');
+                }
+            } else {
+                selectedCards.splice(index, 1);
+                element.classList.remove('selected');
+            }
+            document.getElementById('modalSelectedCount').textContent = selectedCards.length;
+            document.getElementById('confirmCount').textContent = selectedCards.length;
+            document.getElementById('selectedCardsDisplay').textContent = selectedCards.length;
+
+            if (agentId) {
+                saveSessionToStorage(agentId, currentSession, selectedCards);
+            }
+        }
+
+        function openCardModal() {
+            if (gameActive) {
+                Swal.fire('Game Active', 'Cannot change cards during active game', 'warning');
+                return;
+            }
+            loadCardsInModal();
+            document.getElementById('cardModal').classList.add('active');
+            document.getElementById('modalSelectedCount').textContent = selectedCards.length;
+            document.getElementById('confirmCount').textContent = selectedCards.length;
+        }
+
+        function closeCardModal() {
+            document.getElementById('cardModal').classList.remove('active');
+        }
+
+        function confirmCardSelection() {
+            let size = selectedCards.length;
+            if (size < 2) {
+                Swal.fire('Error', `Please select at least 2 cards. You selected only ${size} card(s).`, 'error');
+                return;
+            }
+            saveSessionToStorage(agentId, currentSession, selectedCards);
+            closeCardModal();
+            startGame();
+        }
+
+        function startGame() {
+            if (gameActive) return;
+            if (selectedCards.length < 2) {
+                Swal.fire('Error', `Please select at least 2 cards. You have selected ${selectedCards.length} card(s).`, 'error');
+                openCardModal();
+                return;
+            }
+            Swal.fire({
+                title: 'Stack Amount',
+                input: 'select',
+                inputOptions: { 20: '20 ETB', 50: '50 ETB', 100: '100 ETB', 200: '200 ETB', 300: '300 ETB' },
+                showCancelButton: true
+            }).then((result) => {
+                if (result.value) {
+                    socket.emit('start_game', {
+                        sessionId: currentSession,
+                        stackAmount: parseInt(result.value),
+                        selectedCards: selectedCards
+                    });
+                }
+            });
+        }
+
+        function togglePausePlay() {
+            if (!gameActive) return;
+            if (gamePaused) {
+                socket.emit('resume_game');
+                gamePaused = false;
+                document.getElementById('pauseBtn').innerHTML = '<i class="fas fa-pause"></i> Pause';
+            } else {
+                socket.emit('pause_game');
+                gamePaused = true;
+                document.getElementById('pauseBtn').innerHTML = '<i class="fas fa-play"></i> Play';
+            }
+            updateButtonStates();
+        }
+
+        function resetGame() {
+            socket.emit('reset_game');
+
+            selectedCards = [];
+            currentLoadedCardNumber = null;
+            currentLoadedCardData = null;
+            cardBlocked.clear();
+            drawnNumbers = [];
+            jokerColumn = null;
+            jokerDrawn = false;
+
+            document.getElementById('selectedCardsDisplay').textContent = '0';
+            document.getElementById('modalSelectedCount').textContent = '0';
+            document.getElementById('confirmCount').textContent = '0';
+            document.getElementById('jokerDisplay').textContent = 'Not Drawn';
+            document.getElementById('jokerDisplay').style.color = '';
+            clearJokerHighlights();
+
+            const allCardItems = document.querySelectorAll('.card-item-modal');
+            allCardItems.forEach(item => {
+                item.classList.remove('selected');
+            });
+            // Start bonus audio if jackpot is ready
+            if (accumulatedJackpot >= jackpotMinLimit) {
+                startBonusAudio();
+            }
+            Swal.fire({
+                icon: 'info',
+                title: 'Game Reset',
+                text: 'Game data has been cleared. You can select new cards and start a new game.',
+                timer: 2000,
+                showConfirmButton: false
+            });
+            toggleFullScreen("New Game", "New Game");
+        }
+
+        function newGame() {
+            stopBonusAudio();
+            socket.emit('reset_game');
+            window.location.reload();
+            toggleFullScreen("New Game", "New Game");
+        }
+
+        // ============ UPDATED loadReports FUNCTION WITH FILTERS ============
+        async function loadReports(filter = 'all') {
+    if (!agentId) return;
+
+    currentReportFilter = filter;
+
+    try {
+        // Build URL with filter
+        let url = `/api/game-report/${agentId}?limit=500`;
+        if (filter !== 'all') {
+            url += `&filter=${filter}`;
+        }
+
+        const response = await authFetch(url);
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error('❌ Server error:', errorData);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error Loading Reports',
+                text: errorData.details || 'Could not load reports.',
+                confirmButtonText: 'OK'
+            });
+            return;
+        }
+
+        const data = await response.json();
+        console.log('📊 Reports data:', data);
+
+        // Helper function to safely format numbers
+        const safeNumber = (value) => {
+            const num = parseFloat(value);
+            return isNaN(num) ? 0 : num;
+        };
+
+        const safeFixed = (value, decimals = 2) => {
+            const num = safeNumber(value);
+            return num.toFixed(decimals);
+        };
+
+        // Get filter label for display
+        let filterLabel = 'All Games';
+        let filterDate = '';
+        if (filter === 'today') {
+            filterLabel = "Today's Games";
+            filterDate = new Date().toLocaleDateString();
+        } else if (filter === 'yesterday') {
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            filterLabel = "Yesterday's Games";
+            filterDate = yesterday.toLocaleDateString();
+        } else if (filter === 'daybefore') {
+            const dayBefore = new Date();
+            dayBefore.setDate(dayBefore.getDate() - 2);
+            filterLabel = "Day Before Yesterday's Games";
+            filterDate = dayBefore.toLocaleDateString();
+        }
+
+        // Create and show report modal
+        const reportModal = document.createElement('div');
+        reportModal.className = 'report-modal';
+        reportModal.innerHTML = `
+            <div class="report-modal-content">
+                <div class="report-modal-header">
+                    <h3><i class="fas fa-chart-line"></i> Game Reports & Agent Statistics</h3>
+                    <button class="report-modal-close" onclick="this.closest('.report-modal').remove()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="report-modal-body">
+                    <!-- Filter Buttons -->
+                    <div class="report-filters">
+                        <button class="report-filter-btn all ${filter === 'all' ? 'active' : ''}" onclick="loadReports('all')">
+                            📊 All Games
+                        </button>
+                        <button class="report-filter-btn today ${filter === 'today' ? 'active' : ''}" onclick="loadReports('today')">
+                            📅 Today (${new Date().toLocaleDateString()})
+                        </button>
+                        <button class="report-filter-btn yesterday ${filter === 'yesterday' ? 'active' : ''}" onclick="loadReports('yesterday')">
+                            📅 Yesterday (${new Date(Date.now() - 86400000).toLocaleDateString()})
+                        </button>
+                        <button class="report-filter-btn daybefore ${filter === 'daybefore' ? 'active' : ''}" onclick="loadReports('daybefore')">
+                            📅 Day Before (${new Date(Date.now() - 172800000).toLocaleDateString()})
+                        </button>
+                    </div>
+                    
+                    <!-- Filter Label -->
+                    <div style="margin-bottom: 15px; padding: 8px 15px; background: #f8f9fa; border-radius: 8px; display: inline-block; border-left: 4px solid #667eea;">
+                        <strong>Showing:</strong> ${filterLabel} ${filterDate ? `(${filterDate})` : ''} 
+                        <span style="margin-left: 10px; background: #667eea; color: white; padding: 2px 12px; border-radius: 20px; font-size: 12px;">
+                            ${data.reports?.length || 0} games
+                        </span>
+                    </div>
+
+                    <!-- Agent Profile Summary -->
+                    <div class="agent-summary-cards">
+                        <div class="agent-summary-card">
+                            <i class="fas fa-id-card"></i>
+                            <div class="agent-summary-value">${data.agent?.agent_id || 'N/A'}</div>
+                            <div class="agent-summary-label">Agent ID</div>
+                        </div>
+                        <div class="agent-summary-card">
+                            <i class="fas fa-user"></i>
+                            <div class="agent-summary-value">${data.agent?.agent_name || 'N/A'}</div>
+                            <div class="agent-summary-label">Agent Name</div>
+                        </div>
+                        <div class="agent-summary-card">
+                            <i class="fas fa-phone"></i>
+                            <div class="agent-summary-value">${data.agent?.phone_number || 'N/A'}</div>
+                            <div class="agent-summary-label">Phone Number</div>
+                        </div>
+                        <div class="agent-summary-card">
+                            <i class="fas fa-calendar-alt"></i>
+                            <div class="agent-summary-value">${data.agent?.created_at ? new Date(data.agent.created_at).toLocaleDateString() : 'N/A'}</div>
+                            <div class="agent-summary-label">Joined Date</div>
+                        </div>
+                        <div class="agent-summary-card">
+                            <i class="fas fa-gamepad"></i>
+                            <div class="agent-summary-value">${safeNumber(data.agent?.total_games)}</div>
+                            <div class="agent-summary-label">Total Games (from profile)</div>
+                        </div>
+                        <div class="agent-summary-card">
+                            <i class="fas fa-hand-holding-usd"></i>
+                            <div class="agent-summary-value">${safeFixed(data.agent?.total_commission)} ETB</div>
+                            <div class="agent-summary-label">Total Commission (from profile)</div>
+                        </div>
+                        <div class="agent-summary-card">
+                            <i class="fas fa-coins"></i>
+                            <div class="agent-summary-value">${safeFixed(data.agent?.total_net_revenue)} ETB</div>
+                            <div class="agent-summary-label">Total Net Revenue (from profile)</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Game Statistics Summary -->
+                    <div class="summary-cards">
+                        <div class="summary-card">
+                            <i class="fas fa-gamepad"></i>
+                            <div class="summary-value">${safeNumber(data.summary?.total_games)}</div>
+                            <div class="summary-label">Total Games</div>
+                        </div>
+                        <div class="summary-card">
+                            <i class="fas fa-money-bill-wave"></i>
+                            <div class="summary-value">${safeFixed(data.summary?.total_revenue)} ETB</div>
+                            <div class="summary-label">Total Revenue</div>
+                        </div>
+                        <div class="summary-card">
+                            <i class="fas fa-hand-holding-usd"></i>
+                            <div class="summary-value">${safeFixed(data.summary?.total_commission)} ETB</div>
+                            <div class="summary-label">Total Commission</div>
+                        </div>
+                        <div class="summary-card">
+                            <i class="fas fa-trophy"></i>
+                            <div class="summary-value">${safeFixed(data.summary?.total_payouts)} ETB</div>
+                            <div class="summary-label">Total Payouts</div>
+                        </div>
+                        <div class="summary-card">
+                            <i class="fas fa-piggy-bank"></i>
+                            <div class="summary-value">${safeFixed(data.summary?.total_jackpot_contribution)} ETB</div>
+                            <div class="summary-label">Jackpot Contribution</div>
+                        </div>
+                        <div class="summary-card">
+                            <i class="fas fa-award"></i>
+                            <div class="summary-value">${safeFixed(data.summary?.total_jackpot_paid)} ETB</div>
+                            <div class="summary-label">Jackpot Paid Out</div>
+                        </div>
+                        <div class="summary-card">
+                            <i class="fas fa-coins"></i>
+                            <div class="summary-value" style="color: ${safeNumber(data.summary?.total_net_revenue) < 0 ? '#dc3545' : '#28a745'};">${safeFixed(data.summary?.total_net_revenue)} ETB</div>
+                            <div class="summary-label">Net Revenue (after jackpot)</div>
+                        </div>
+                        <div class="summary-card">
+                            <i class="fas fa-users"></i>
+                            <div class="summary-value">${safeNumber(data.summary?.total_winners)}</div>
+                            <div class="summary-label">Total Winners</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Game Reports Table -->
+                    <div class="reports-table-container">
+                        <h4 style="margin: 20px 0 10px 0; color: #333;">
+                            <i class="fas fa-list"></i> ${filterLabel} ${filterDate ? `- ${filterDate}` : ''}
+                            <span style="font-weight: normal; font-size: 14px; color: #666; margin-left: 10px;">
+                                (${data.reports?.length || 0} games found)
+                            </span>
+                        </h4>
+                        ${data.reports && data.reports.length > 0 ? `
+                        <table class="reports-table">
+                            <thead>
+                                <tr>
+                                    <th>Game ID</th>
+                                    <th>Date & Time</th>
+                                    <th>Stack</th>
+                                    <th>Prize Paid</th>
+                                    <th>Winners</th>
+                                    <th>Commission</th>
+                                    <th>Jackpot Contrib</th>
+                                    <th>Jackpot Paid</th>
+                                    <th>Net Revenue</th>
+                                    <th>Duration</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${data.reports.map(report => `
+                                    <tr>
+                                        <td><strong>${report.game_id || 'N/A'}</strong></td>
+                                        <td>${report.created_at ? new Date(report.created_at).toLocaleString() : 'N/A'}</td>
+                                        <td>${safeFixed(report.total_stack)} ETB</td>
+                                        <td>${safeFixed(report.total_prize_paid)} ETB</td>
+                                        <td>${safeNumber(report.winners_count)}</td>
+                                        <td class="text-success">${safeFixed(report.agent_commission)} ETB</td>
+                                        <td class="text-warning">${safeFixed(report.jackpot_contribution)} ETB</td>
+                                        <td>${report.is_jackpot_round ? `<strong>🎰 ${safeFixed(report.jackpot_used)} ETB</strong>` : '-'}</td>
+                                        <td style="font-weight: bold; color: ${safeNumber(report.net_revenue) < 0 ? '#dc3545' : '#28a745'};">${safeFixed(report.net_revenue)} ETB</td>
+                                        <td>${formatDuration(report.game_duration)}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                        ` : `
+                        <div style="text-align: center; padding: 40px; color: #999; background: #f8f9fa; border-radius: 12px;">
+                            <i class="fas fa-calendar-day fa-3x" style="color: #ccc; margin-bottom: 15px;"></i>
+                            <p style="font-size: 16px;">No game reports found for ${filterLabel.toLowerCase()}.</p>
+                            <p style="font-size: 13px; margin-top: 5px;">Try selecting a different filter.</p>
+                        </div>
+                        `}
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(reportModal);
+        document.getElementById('dropdownMenu').classList.remove('show');
+
+    } catch (error) {
+        console.error('❌ Error loading reports:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Connection Error',
+            text: 'Could not connect to server. Please check your connection.',
+            confirmButtonText: 'OK'
+        });
+    }
+}
+        // Helper function to safely format numbers
+        function safeNumber(value) {
+            const num = parseFloat(value);
+            return isNaN(num) ? 0 : num;
+        }
+
+        function safeFixed(value, decimals = 2) {
+            const num = safeNumber(value);
+            return num.toFixed(decimals);
+        }
+
+        function formatDuration(seconds) {
+            if (!seconds) return '0s';
+            const num = safeNumber(seconds);
+            const mins = Math.floor(num / 60);
+            const secs = Math.floor(num % 60);
+            if (mins > 0) return `${mins}m ${secs}s`;
+            return `${secs}s`;
+        }
+        function formatDuration(seconds) {
+            if (!seconds) return '0s';
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            if (mins > 0) return `${mins}m ${secs}s`;
+            return `${secs}s`;
+        }
+
+        function addToDrawStrip(data) {
+            const strip = document.getElementById('drawStrip');
+            if (strip.children[0]?.classList?.contains('text-muted')) strip.innerHTML = '';
+            const chip = document.createElement('div');
+            chip.className = 'draw-chip';
+            if (data.isJoker) {
+                chip.classList.add('joker-chip');
+            }
+            chip.textContent = data.numberText;
+            strip.appendChild(chip);
+            strip.scrollLeft = strip.scrollWidth;
+            if (strip.children.length > 30) strip.removeChild(strip.firstChild);
+        }
+
+        function updateLastCall(data) {
+            if (data.letter) {
+                if (data.isJoker) {
+                    document.getElementById('lastCallNumber').textContent = '🃏';
+                    document.getElementById('lastCallLetter').textContent = data.letter;
+                    document.getElementById('lastCallCircle').classList.add('joker-active');
+                } else {
+                    document.getElementById('lastCallNumber').textContent = data.number;
+                    document.getElementById('lastCallLetter').textContent = data.letter;
+                    document.getElementById('lastCallCircle').classList.remove('joker-active');
+                }
+                const circle = document.getElementById('lastCallCircle');
+                circle.style.animation = 'none';
+                setTimeout(() => circle.style.animation = 'pulse 2s infinite', 10);
+            }
+        }
+
+        function markNumberOnBoard(data) {
+            const cell = document.getElementById(`${data.letter}-${data.number}`);
+            if (cell) cell.classList.add('drawn');
+        }
+
+        function resetBingoBoard() {
+            for (const [letter, rowData] of Object.entries(bingoRows)) {
+                for (const number of rowData.numbers) {
+                    const cell = document.getElementById(`${letter}-${number}`);
+                    if (cell) cell.classList.remove('drawn');
+                }
+            }
+        }
+
+        function initializeSmartBingoBoard() {
+            const container = document.getElementById('smartBingoGrid');
+            container.innerHTML = '';
+            for (const [letter, rowData] of Object.entries(bingoRows)) {
+                const rowDiv = document.createElement('div');
+                rowDiv.className = 'bingo-row-smart';
+                const letterDiv = document.createElement('div');
+                letterDiv.className = 'row-letter';
+                letterDiv.textContent = letter;
+                rowDiv.appendChild(letterDiv);
+                const numbersContainer = document.createElement('div');
+                numbersContainer.className = 'numbers-container';
+                for (const number of rowData.numbers) {
+                    const numberCircle = document.createElement('div');
+                    numberCircle.className = 'number-circle';
+                    numberCircle.textContent = number;
+                    numberCircle.id = `${letter}-${number}`;
+                    numbersContainer.appendChild(numberCircle);
+                }
+                rowDiv.appendChild(numbersContainer);
+                container.appendChild(rowDiv);
+            }
+        }
+
+        function playNumberSound(data) {
+            if (data.letter && !data.isJoker) {
+                const audio = document.getElementById('audioPlayer');
+                audio.src = `/audio/${data.numberText}.mp3`;
+                audio.play().catch(e => console.log('Audio error:', e));
+            }
+        }
+
+        function playSound(fileName) {
+            const audio = document.getElementById('audioPlayer');
+            audio.src = `/audio/${fileName}`;
+            audio.play().catch(e => console.log('Audio error:', e));
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('controlsSidebar');
+            const toggleBtn = document.getElementById('sidebarToggle');
+            const mainContent = document.getElementById('mainContent');
+            sidebar.classList.toggle('collapsed');
+            toggleBtn.classList.toggle('collapsed');
+            mainContent.classList.toggle('full-width');
+            toggleBtn.innerHTML = sidebar.classList.contains('collapsed') ? '<i class="fas fa-chevron-right"></i>' : '<i class="fas fa-chevron-left"></i>';
+        }
+
+        async function loadAgentStats() {
+            if (!agentId) return;
+            const res = await authFetch(`/api/agent/${agentId}`);
+            if (!res.ok) return;
+            const agent = await res.json();
+            if (agent) {
+                document.getElementById('revenueDisplay').textContent = (parseFloat(agent.total_commission) || 0).toFixed(2) + ' ETB';
+                document.getElementById('netRevenueDisplay').textContent = (parseFloat(agent.total_net_revenue) || 0).toFixed(2) + ' ETB';
+                document.getElementById('selectedCardsDisplay').textContent = selectedCards.length;
+            }
+        }
+
+        // Initialize        
+        if (!restoreSession()) {
+            initializeSmartBingoBoard();
+            updatePrizeDisplay();
+            updateButtonStates();
+        } else {
+            initializeSmartBingoBoard();
+            updatePrizeDisplay();
+            updateButtonStates();
+        }
+
+        // Load saved theme after initialization
+        loadSavedTheme();
+    </script>
+    <script>
+        (function () {
+            const grid = document.getElementById('numberGrid');
+            const pot = document.getElementById('pot');
+
+            const modalOverlay = document.getElementById('modalOverlay');
+            const openModalBtn = document.getElementById('openModalBtn');
+            const closeModalBtn = document.getElementById('closeModalBtn');
+
+            const TOTAL = 100;
+            let currentNumbers = [];
+            let shuffleTimer = null;
+            let isShuffling = false;
+            let isModalOpen = false;
+
+            // ----- AUDIO SETUP WITH MULTIPLE FORMATS -----
+            // Try different formats for better browser support
+            const audioSources = [
+                'audio/shuffle.mp3',
+                'audio/shuffle.wav',
+                'audio/shuffle.ogg'
+            ];
+
+            let shuffleAudio = null;
+
+            // Function to load audio with fallback
+            function loadAudio() {
+                // Try to create audio element with multiple sources
+                const audio = new Audio();
+
+                // Add multiple source formats for better compatibility
+                audioSources.forEach(src => {
+                    const source = document.createElement('source');
+                    source.src = src;
+                    // Determine type from file extension
+                    if (src.endsWith('.mp3')) source.type = 'audio/mpeg';
+                    else if (src.endsWith('.wav')) source.type = 'audio/wav';
+                    else if (src.endsWith('.ogg')) source.type = 'audio/ogg';
+                    audio.appendChild(source);
+                });
+
+                // Add error handling
+                audio.addEventListener('error', function (e) {
+                    console.warn('Audio loading error:', e);
+                    console.warn('Attempted sources:', audioSources);
+                    console.warn('Please ensure your audio file is at: audio/shuffle.mp3');
+                    console.warn('You can also use .wav or .ogg formats as fallback.');
+                });
+
+                // Try to load the audio
+                audio.load();
+
+                return audio;
+            }
+
+            // Initialize audio
+            try {
+                shuffleAudio = loadAudio();
+            } catch (e) {
+                console.warn('Audio initialization failed:', e);
+                shuffleAudio = null;
+            }
+
+            // ----- generate random positions INSIDE the circle -----
+            function generateRandomPositions(count, containerWidth, containerHeight) {
+                const radius = Math.min(containerWidth, containerHeight) * 0.45;
+                const cx = containerWidth / 2;
+                const cy = containerHeight / 2;
+                const positions = [];
+                const margin = 24;
+                const maxRadius = radius - margin;
+
+                for (let i = 0; i < count; i++) {
+                    let x, y, dist;
+                    let attempts = 0;
+                    do {
+                        const angle = Math.random() * Math.PI * 2;
+                        const r = Math.sqrt(Math.random()) * maxRadius;
+                        x = cx + r * Math.cos(angle);
+                        y = cy + r * Math.sin(angle);
+                        dist = Math.sqrt(Math.pow(x - cx, 2) + Math.pow(y - cy, 2));
+                        attempts++;
+                    } while ((dist > maxRadius) && attempts < 100);
+
+                    positions.push({ x, y });
+                }
+
+                return positions;
+            }
+
+            // ----- generate vibrant random color -----
+            function getRandomColorGradient() {
+                const hue1 = Math.floor(Math.random() * 360);
+                const hue2 = (hue1 + 30 + Math.floor(Math.random() * 60)) % 360;
+                const sat = 70 + Math.floor(Math.random() * 30);
+                const light1 = 50 + Math.floor(Math.random() * 30);
+                const light2 = 40 + Math.floor(Math.random() * 30);
+                return `radial-gradient(circle at 35% 35%, hsl(${hue1}, ${sat}%, ${light1}%), hsl(${hue2}, ${sat}%, ${light2}%))`;
+            }
+
+            // ----- arrange numbers randomly inside circle with colors -----
+            function arrangeNumbers(numbersArray) {
+                const container = grid;
+                const width = container.offsetWidth || 590;
+                const height = container.offsetHeight || 590;
+
+                const positions = generateRandomPositions(numbersArray.length, width, height);
+
+                while (container.firstChild) {
+                    container.removeChild(container.firstChild);
+                }
+
+                const fragment = document.createDocumentFragment();
+                const total = numbersArray.length;
+
+                for (let i = 0; i < total; i++) {
+                    const val = numbersArray[i];
+                    const pos = positions[i];
+
+                    const el = document.createElement('div');
+                    el.className = 'number-item';
+                    el.textContent = val;
+                    el.dataset.value = val;
+                    el.style.left = pos.x + 'px';
+                    el.style.top = pos.y + 'px';
+
+                    const bgGradient = getRandomColorGradient();
+                    el.style.background = bgGradient;
+
+                    const hue = Math.floor(Math.random() * 360);
+                    el.style.boxShadow = `
+                    0 4px 16px rgba(0, 0, 0, 0.5),
+                    0 0 0 1px rgba(255, 255, 255, 0.15),
+                    inset 0 -3px 8px rgba(0, 0, 0, 0.25),
+                    inset 0 2px 6px rgba(255, 255, 255, 0.2),
+                    0 0 20px hsla(${hue}, 80%, 60%, 0.15)
+                `;
+
+                    const rot = (Math.random() - 0.5) * 12;
+                    const scale = 0.9 + Math.random() * 0.2;
+                    el.style.transform = `translate(-50%, -50%) rotate(${rot}deg) scale(${scale})`;
+
+                    fragment.appendChild(el);
+                }
+
+                container.appendChild(fragment);
+            }
+
+            // ----- Fisher–Yates shuffle -----
+            function shuffleArray(arr) {
+                const a = [...arr];
+                for (let i = a.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [a[i], a[j]] = [a[j], a[i]];
+                }
+                return a;
+            }
+
+            // ----- Play audio function with better error handling -----
+            function playShuffleAudio() {
+                if (!shuffleAudio) {
+                    console.warn('Audio not initialized');
+                    return;
+                }
+
+                try {
+                    // Reset audio to start
+                    shuffleAudio.currentTime = 0;
+
+                    // Try to play
+                    const playPromise = shuffleAudio.play();
+
+                    if (playPromise !== undefined) {
+                        playPromise
+                            .then(() => {
+                                console.log('Audio playing successfully');
+                            })
+                            .catch(error => {
+                                console.warn('Audio play failed:', error);
+                                console.warn('Make sure your audio file exists at: audio/shuffle.mp3');
+                                console.warn('You can also use .wav or .ogg formats.');
+                            });
+                    }
+                } catch (e) {
+                    console.warn('Audio play error:', e);
+                }
+            }
+
+            // ----- SHAKE + JUMP shuffle -----
+            function shakeAndShuffle() {
+                if (isShuffling) return;
+                isShuffling = true;
+
+                // Play audio
+                playShuffleAudio();
+
+                if (currentNumbers.length !== TOTAL) {
+                    currentNumbers = Array.from({ length: TOTAL }, (_, i) => i + 1);
+                }
+
+                pot.classList.remove('shaking');
+                void pot.offsetWidth;
+                pot.classList.add('shaking');
+
+                let step = 0;
+                const MAX_STEPS = 3;
+
+                function doStep() {
+                    if (step >= MAX_STEPS) {
+                        const finalShuffle = shuffleArray(currentNumbers);
+                        currentNumbers = finalShuffle;
+                        arrangeNumbers(currentNumbers);
+
+                        const items = grid.querySelectorAll('.number-item');
+                        items.forEach((el, index) => {
+                            setTimeout(() => {
+                                el.classList.add('jumping');
+                                setTimeout(() => {
+                                    el.classList.remove('jumping');
+                                }, 350);
+                            }, index * 8);
+                        });
+
+                        isShuffling = false;
+                        shuffleTimer = null;
+                        pot.classList.remove('shaking');
+                        return;
+                    }
+
+                    const mixed = shuffleArray(currentNumbers);
+                    arrangeNumbers(mixed);
+
+                    const items = grid.querySelectorAll('.number-item');
+                    items.forEach((el, index) => {
+                        setTimeout(() => {
+                            el.classList.add('jumping');
+                            setTimeout(() => {
+                                el.classList.remove('jumping');
+                            }, 350);
+                        }, index * 6);
+                    });
+
+                    step++;
+                    shuffleTimer = setTimeout(doStep, 350);
+                }
+
+                doStep();
+            }
+
+            // ----- reset to ordered 1..100 -----
+            function resetOrdered() {
+                if (shuffleTimer) {
+                    clearTimeout(shuffleTimer);
+                    shuffleTimer = null;
+                }
+                isShuffling = false;
+                pot.classList.remove('shaking');
+                currentNumbers = Array.from({ length: TOTAL }, (_, i) => i + 1);
+                arrangeNumbers(currentNumbers);
+            }
+
+            // ----- Open Modal & Start Shuffle -----
+            function openModalAndShuffle() {
+                if (isModalOpen) return;
+
+                modalOverlay.classList.add('active');
+                isModalOpen = true;
+
+                if (currentNumbers.length !== TOTAL) {
+                    currentNumbers = Array.from({ length: TOTAL }, (_, i) => i + 1);
+                }
+                resetOrdered();
+
+                setTimeout(() => {
+                    shakeAndShuffle();
+                }, 300);
+
+                document.body.style.overflow = 'hidden';
+            }
+
+            // ----- Close Modal -----
+            function closeModal() {
+                if (!isModalOpen) return;
+
+                if (shuffleTimer) {
+                    clearTimeout(shuffleTimer);
+                    shuffleTimer = null;
+                }
+                isShuffling = false;
+                pot.classList.remove('shaking');
+
+                // Stop audio
+                if (shuffleAudio) {
+                    try {
+                        shuffleAudio.pause();
+                        shuffleAudio.currentTime = 0;
+                    } catch (e) {
+                        console.warn('Audio stop error:', e);
+                    }
+                }
+
+                modalOverlay.classList.remove('active');
+                isModalOpen = false;
+                document.body.style.overflow = '';
+            }
+
+            // ----- Event Listeners -----
+            if (openModalBtn) {
+                openModalBtn.addEventListener('click', openModalAndShuffle);
+            }
+
+            if (closeModalBtn) {
+                closeModalBtn.addEventListener('click', closeModal);
+            }
+
+            if (modalOverlay) {
+                modalOverlay.addEventListener('click', function (e) {
+                    if (e.target === modalOverlay) {
+                        closeModal();
+                    }
+                });
+            }
+
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape' && isModalOpen) {
+                    closeModal();
+                }
+            });
+
+            // ----- Init -----
+            function init() {
+                currentNumbers = Array.from({ length: TOTAL }, (_, i) => i + 1);
+                arrangeNumbers(currentNumbers);
+
+                let resizeTimer = null;
+                window.addEventListener('resize', () => {
+                    if (resizeTimer) clearTimeout(resizeTimer);
+                    resizeTimer = setTimeout(() => {
+                        if (currentNumbers.length === TOTAL && !isShuffling && isModalOpen) {
+                            arrangeNumbers(currentNumbers);
+                        }
+                        resizeTimer = null;
+                    }, 150);
+                });
+            }
+
+            init();
+        })();
+    </script>
+<script src="/js/shield.js"></script>
+</body>
+
+</html>

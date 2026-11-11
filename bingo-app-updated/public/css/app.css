@@ -1,0 +1,71 @@
+:root{--bg:#0b1020;--panel:#141b34;--panel2:#1b2447;--line:#2a3566;--text:#e8ecff;--muted:#8d97c4;--brand:#ffb020;--brand2:#ff7a18;--ok:#22c55e;--bad:#ef4444;--blue:#4f8cff}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+body{min-height:100vh}
+a{color:var(--blue)}
+h1,h2,h3{margin:.2em 0}
+button,input,select{font:inherit;color:inherit}
+input,select{background:#0e1530;border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%;outline:none}
+input:focus,select:focus{border-color:var(--brand)}
+label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
+button{cursor:pointer;border:0;border-radius:10px;padding:10px 16px;background:var(--panel2);font-weight:600}
+button:hover{filter:brightness(1.15)}
+button:disabled{opacity:.45;cursor:not-allowed}
+.btn-primary{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#201400}
+.btn-ok{background:var(--ok);color:#04230f}
+.btn-bad{background:var(--bad);color:#fff}
+.btn-ghost{background:transparent;border:1px solid var(--line)}
+.btn-sm{padding:5px 10px;font-size:13px;border-radius:8px}
+.wrap{max-width:980px;margin:0 auto;padding:14px}
+.narrow{max-width:420px;margin:6vh auto}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;margin:12px 0}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.row>.grow{flex:1;min-width:120px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.muted{color:var(--muted)}.small{font-size:13px}.right{text-align:right}.center{text-align:center}
+.ok{color:var(--ok)}.bad{color:var(--bad)}.warn{color:var(--brand)}
+.badge{display:inline-block;padding:2px 9px;border-radius:99px;font-size:12px;font-weight:700;background:var(--panel2)}
+.badge.ok{background:#12351f;color:var(--ok)}.badge.bad{background:#3a1717;color:var(--bad)}.badge.warn{background:#3a2c0b;color:var(--brand)}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
+.logo{font-weight:800;font-size:18px;letter-spacing:.5px}
+.logo b{color:var(--brand)}
+.balance{background:#0e1530;border:1px solid var(--line);border-radius:99px;padding:6px 14px;font-weight:800;color:var(--brand)}
+.tabs{display:flex;gap:6px;overflow-x:auto;padding:8px 14px;background:var(--panel);border-bottom:1px solid var(--line)}
+.tabs button{background:transparent;white-space:nowrap}
+.tabs button.on{background:var(--panel2);color:var(--brand)}
+table{width:100%;border-collapse:collapse}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;font-size:14px;vertical-align:middle}
+th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.4px}
+.scroll{overflow-x:auto}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:24px;background:#000d;border:1px solid var(--line);padding:10px 18px;border-radius:12px;z-index:100;max-width:90vw}
+.toast.bad{border-color:var(--bad)}.toast.ok{border-color:var(--ok)}
+.modal-bg{position:fixed;inset:0;background:#000b;display:flex;align-items:center;justify-content:center;z-index:50;padding:14px}
+.modal{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;width:100%;max-width:440px;max-height:90vh;overflow:auto}
+.stat{background:var(--panel2);border-radius:14px;padding:12px}
+.stat .v{font-size:22px;font-weight:800}
+.stat .k{font-size:12px;color:var(--muted)}
+.code-box{font-size:34px;letter-spacing:6px;font-weight:900;color:var(--brand);background:#0e1530;border:2px dashed var(--brand);border-radius:14px;padding:6px 16px;display:inline-block}
+.pick{display:grid;grid-template-columns:repeat(auto-fill,minmax(46px,1fr));gap:6px}
+.pick button{padding:9px 0;border-radius:9px;background:var(--panel2);font-size:14px}
+.pick button.mine{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#201400}
+.pick button.taken{background:#0e1530;color:#4a5588;cursor:not-allowed}
+.boards{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px}
+.bingo{border-collapse:separate;border-spacing:3px;width:100%;background:#0e1530;border-radius:12px;padding:5px}
+.bingo th{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#201400;text-align:center;border-radius:6px;padding:4px;font-size:14px}
+.bingo td{background:var(--panel2);text-align:center;border-radius:6px;padding:7px 0;font-weight:700;border:0;user-select:none}
+.bingo td.m{background:var(--ok);color:#04230f}
+.bingo td.free{background:#33407a}
+.bingo td.hit{outline:2px solid var(--brand)}
+.ball{width:92px;height:92px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(circle at 30% 30%,#fff3,transparent 40%),linear-gradient(135deg,var(--brand),var(--brand2));color:#201400;font-weight:900}
+.ball .l{font-size:16px;line-height:1}.ball .n{font-size:34px;line-height:1}
+.mini{display:flex;gap:5px;flex-wrap:wrap}
+.mini span{background:var(--panel2);border-radius:99px;padding:3px 9px;font-size:13px;font-weight:700}
+.board75{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+.board75 div{display:grid;grid-template-columns:repeat(3,1fr);gap:3px}
+.board75 span{background:#0e1530;border-radius:5px;text-align:center;font-size:11px;padding:3px 0;color:#59639b}
+.board75 span.c{background:var(--ok);color:#04230f;font-weight:800}
+.banner{background:linear-gradient(135deg,#3a2c0b,#4a1d0b);border:2px solid var(--brand);border-radius:14px;padding:12px;margin:10px 0;text-align:center}
+.switch{display:flex;align-items:center;gap:8px}
+.switch input{width:auto;accent-color:var(--brand)}
+.shield-cover{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;font-size:20px;text-align:center;padding:20px}
+@media(max-width:560px){.wrap{padding:8px}.code-box{font-size:26px}}
